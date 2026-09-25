@@ -72,33 +72,45 @@
     home: '<path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/>',
     reload: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
     search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
-    shake: '<rect x="8" y="3" width="8" height="18" rx="2"/><path d="M11 18h2M4.5 8.5l-2 3.5 2 3.5M19.5 8.5l2 3.5-2 3.5"/>'
+    shake: '<rect x="8" y="3" width="8" height="18" rx="2"/><path d="M11 18h2M4.5 8.5l-2 3.5 2 3.5M19.5 8.5l2 3.5-2 3.5"/>',
+    video: '<rect x="2.5" y="5" width="19" height="14" rx="4.5" fill="#fff" stroke="none"/><path d="M10 9l5.2 3-5.2 3z" fill="#ff2d2d" stroke="none"/>',
+    photos: '<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="M21 15.5l-4.5-4.5L6 21"/>',
+    book: '<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5v13"/>',
+    quiz: '<circle cx="12" cy="12" r="9"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.7.3-1.2 1-1.2 1.8v.6M12 17.3h.01"/>',
+    hourglass: '<path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/>',
+    moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
+    speaker: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'
   };
   LS.iconNames = Object.keys(P);
   LS.icon = (name, extra) => `<svg viewBox="0 0 24 24" aria-hidden="true" ${extra || ''}>${P[name] || ''}</svg>`;
 
   /* ---------- Settings ---------- */
-  // v3 (ShellOS 1.2): optional apps/games are ON by default (extrasOff lists the ones turned off).
-  // Older v2 settings are migrated once; the passcode and all saved data use separate keys and are untouched.
-  const SKEY = 'lockshell.settings.v3', OLD_SKEY = 'lockshell.settings.v2';
+  // v4 (ShellOS 1.3): adds YouTube + Screen Time settings. Optional apps/games are ON by default (extrasOff lists
+  // the ones turned off), so new apps appear for existing installs too. v3 (1.2) and v2 (1.1) settings are migrated
+  // once and every existing choice is kept; the passcode and all saved data use separate keys and are untouched.
+  const SKEY = 'lockshell.settings.v4', OLD_KEYS = ['lockshell.settings.v3', 'lockshell.settings.v2'];
   const DEFAULTS = {
     theme: 'light', idleMin: 2, hidden: [], weatherUnit: 'F',
     buddy: { speak: true, voiceURI: '', rate: 1, pitch: 1, style: 'friendly' },
     wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null, manualPlace: false, extrasOff: [],
     shake: true, shakeSens: 'med', motionPerm: 'unknown',
-    shell: { wiki: 'simple', images: false, addSites: [], removedSites: [], blockWords: [] }
+    shell: { wiki: 'simple', images: false, addSites: [], removedSites: [], blockWords: [] },
+    yt: { limitMin: 60, added: [], removed: [] },
+    screen: { limitMin: 0, bedtime: false, bedStart: '20:00', bedEnd: '07:00' }
   };
   LS.settings = JSON.parse(JSON.stringify(DEFAULTS));
   try {
     let saved = JSON.parse(localStorage.getItem(SKEY) || 'null');
     if (!saved) {
-      saved = JSON.parse(localStorage.getItem(OLD_SKEY) || '{}');
-      delete saved.extras; // old opt-in list: everything is on by default now
-      saved.migratedFrom = saved && Object.keys(saved).length ? 'v2' : undefined;
+      saved = {};
+      for (const k of OLD_KEYS) {
+        const o = JSON.parse(localStorage.getItem(k) || 'null');
+        if (o && typeof o === 'object') { saved = o; saved.migratedFrom = k.split('.').pop(); break; }
+      }
+      delete saved.extras; // v2 opt-in list: everything is on by default now
     }
     Object.assign(LS.settings, saved);
-    LS.settings.buddy = Object.assign({}, DEFAULTS.buddy, saved.buddy || {});
-    LS.settings.shell = Object.assign({}, DEFAULTS.shell, saved.shell || {});
+    ['buddy', 'shell', 'yt', 'screen'].forEach((k) => { LS.settings[k] = Object.assign({}, DEFAULTS[k], saved[k] || {}); });
     if (!Array.isArray(LS.settings.extrasOff)) LS.settings.extrasOff = [];
     localStorage.setItem(SKEY, JSON.stringify(LS.settings));
   } catch (e) {}
@@ -287,9 +299,9 @@
 
   /* ---------- App registry + router ---------- */
   LS.apps = {};
-  LS.homeOrder = ['settings', 'games', 'buddy', 'shell', 'camera', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light', 'piano', 'calendar', 'dice'];
+  LS.homeOrder = ['settings', 'games', 'buddy', 'shell', 'youtube', 'camera', 'photos', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light', 'stories', 'quiz', 'piano', 'calendar', 'dice'];
   // Optional apps/games: shown by default, can be turned off in Developer Tools > Apps & Games.
-  LS.EXTRAS = { apps: ['piano', 'calendar', 'dice'], games: ['breakout', 'mines', 'connect4', 'skyhop'] };
+  LS.EXTRAS = { apps: ['youtube', 'photos', 'stories', 'quiz', 'piano', 'calendar', 'dice'], games: ['breakout', 'mines', 'connect4', 'skyhop', 'wordsearch', 'simon'] };
   LS.hasExtra = (id) => !(LS.settings.extrasOff || []).includes(id);
   LS.setExtra = (id, on) => { const x = (LS.settings.extrasOff || []).filter((k) => k !== id); if (!on) x.push(id); LS.settings.extrasOff = x; LS.saveSettings(); };
   // Can this app be opened from the home screen / Buddy right now?
@@ -337,6 +349,7 @@
   };
   LS.isLocked = () => $('#lock').classList.contains('active');
   LS.unlock = function () {
+    if (LS.timeBlocked && LS.timeBlocked()) { LS.showTimeUp && LS.showTimeUp(); return; } // Screen Time: the passcode can't open ShellOS
     show('home');
     LS.renderHome && LS.renderHome();
     LS.onUnlock.forEach((f) => { try { f(); } catch (e) {} });
@@ -381,7 +394,7 @@
   };
 
   LS.fmtDur = (ms) => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
-  LS.VERSION = '1.2.0';
+  LS.VERSION = '1.3.0';
   LS.BUILD_DATE = '2026-09-24';
   LS.OS_NAME = 'ShellOS';
   LS.fmtDate = (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });

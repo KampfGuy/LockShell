@@ -45,6 +45,7 @@
     checking = true;
     const ok = await LS.checkPin(entry);
     checking = false;
+    if (ok && LS.timeBlocked && LS.timeBlocked()) { entry = ''; renderDots(); LS.showTimeUp(); return; } // Screen Time: passcode can't get past it
     if (ok) {
       fails = 0; $('#lockGlyph').innerHTML = icon('unlock');
       LS.unlock();
