@@ -13,9 +13,10 @@
   LS.voices = () => (synth ? synth.getVoices() : []);
   if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', () => { LS.voicesChanged && LS.voicesChanged(); });
   const forSpeech = (t) => String(t).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '').replace(/\s+/g, ' ').trim();
-  LS.speak = function (text, force) {
+  LS.speak = function (text, force, onDone) {
     const b = LS.settings.buddy;
-    if (!synth || (!b.speak && !force)) return;
+    const done = () => { if (onDone) { const f = onDone; onDone = null; f(); } };
+    if (!synth || (!b.speak && !force)) { done(); return; }
     try {
       synth.cancel();
       const u = new SpeechSynthesisUtterance(forSpeech(text));
@@ -23,9 +24,11 @@
       if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
       u.rate = Number(b.rate) || 1; u.pitch = Number(b.pitch) || 1;
       speaking = true; if (LS.wake) LS.wake.sync();
-      u.onend = u.onerror = () => { speaking = false; if (LS.wake) setTimeout(LS.wake.sync, 300); };
+      u.onend = u.onerror = () => { speaking = false; if (LS.wake) setTimeout(LS.wake.sync, 300); done(); };
       synth.speak(u);
-    } catch (e) { speaking = false; }
+      // Safety net: some browsers never fire onend.
+      setTimeout(done, Math.min(20000, 1500 + forSpeech(text).length * 90));
+    } catch (e) { speaking = false; done(); }
   };
   let speaking = false;
   LS.isSpeaking = () => speaking;
@@ -35,16 +38,17 @@
     opts = opts || {};
     text = String(text || '').trim();
     if (!text) return;
-    const r = window.BuddyBrain.reply(text, { style: LS.settings.buddy.style, ctx, canOpen: (app, arg) => LS.appAvailable(app) && (app !== 'games' || !arg || LS.gameAvailable(arg)) });
+    const r = window.BuddyBrain.reply(text, { style: LS.settings.buddy.style, ctx, canOpen: LS.buddyCanOpen });
     history.push({ who: 'me', text }, { who: 'bot', text: r.text, refused: !!r.refused });
     if (ui) { addBubble('me', text); addBubble('bot', r.text, r.refused); }
     if (opts.speak !== false) LS.speak(r.text, opts.forceSpeak);
-    if (r.action && r.action.type === 'open' && LS.apps[r.action.app]) {
+    if (!opts.noOpen && r.action && r.action.type === 'open' && LS.apps[r.action.app]) {
       setTimeout(() => { if (!LS.isLocked()) LS.openApp(r.action.app, r.action.arg); }, 1100);
     }
     return r;
   }
   LS.buddyAsk = ask;
+  LS.buddyCanOpen = (app, arg) => LS.appAvailable(app) && (app !== 'games' || !arg || LS.gameAvailable(arg));
   function addBubble(who, text, refused) {
     const b = el('div', { class: 'bubble ' + who + (refused ? ' refuse' : ''), text });
     ui.chat.append(b);
@@ -143,7 +147,8 @@
         if (!m || speaking) continue;
         const rest = m[1].trim();
         LS.bumpIdle();
-        if (!LS.current() || LS.current().id !== 'buddy') LS.openApp('buddy', rest ? { ask: rest } : { greet: true });
+        if (LS.voice && LS.voice.isOpen()) { if (rest) LS.voice.ask(rest); continue; }
+        if (!LS.current() || LS.current().id !== 'buddy') { if (LS.voice) LS.voice.open(rest ? { ask: rest } : {}); else LS.openApp('buddy', rest ? { ask: rest } : { greet: true }); }
         else if (rest) ask(rest, { forceSpeak: true });
         else { LS.speak("Yes? I'm listening.", true); }
       }
