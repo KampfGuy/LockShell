@@ -10,7 +10,7 @@
   /* ---------- Curated kid-safe sites (each was checked to allow being shown in a frame) ---------- */
   const SITES = [
     { host: 'kids.nationalgeographic.com', url: 'https://kids.nationalgeographic.com/', name: 'Nat Geo Kids', emoji: '🦁', color: '#ffce00' },
-    { host: 'kids.britannica.com', url: 'https://kids.britannica.com/', name: 'Britannica Kids', emoji: '📚', color: '#0b64c0' },
+    { host: 'kids.britannica.com', url: 'https://kids.britannica.com/', name: 'Britannica', emoji: '📚', color: '#0b64c0' },
     { host: 'kids.frontiersin.org', url: 'https://kids.frontiersin.org/', name: 'Young Minds', emoji: '🔬', color: '#e2542d' },
     { host: 'musiclab.chromeexperiments.com', url: 'https://musiclab.chromeexperiments.com/', name: 'Music Lab', emoji: '🎵', color: '#7c4dff' },
     { host: 'storylineonline.net', url: 'https://storylineonline.net/', name: 'Storyline', emoji: '📖', color: '#c62828' },
@@ -19,7 +19,7 @@
     { host: 'www.sciencekids.co.nz', url: 'https://www.sciencekids.co.nz/', name: 'Science Kids', emoji: '🧪', color: '#f9a825' },
     { host: 'www.sheppardsoftware.com', url: 'https://www.sheppardsoftware.com/', name: 'Sheppard', emoji: '🗺️', color: '#1565c0' },
     { host: 'www.switchzoo.com', url: 'https://www.switchzoo.com/', name: 'Switch Zoo', emoji: '🦓', color: '#43a047' },
-    { host: 'www.coolkidfacts.com', url: 'https://www.coolkidfacts.com/', name: 'Cool Kid Facts', emoji: '💡', color: '#fb8c00' }
+    { host: 'www.coolkidfacts.com', url: 'https://www.coolkidfacts.com/', name: 'Kid Facts', emoji: '💡', color: '#fb8c00' }
   ];
 
   /* ---------- Normalizing (same idea as Buddy: leetspeak, spacing, repeats) ---------- */

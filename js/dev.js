@@ -68,7 +68,7 @@
     root.append(p);
 
     p.append(el('div', { class: 'dev-banner' }, el('div', { class: 'dev-badge', html: icon('code') }),
-      el('div', null, el('b', { text: 'Developer Tools' }), el('small', { text: 'Full control. Passcode prompts are skipped here. Closes when LockShell locks.' }))));
+      el('div', null, el('b', { text: 'Developer Tools' }), el('small', { text: 'Full control. Passcode prompts are skipped here. Closes when ShellOS locks.' }))));
 
     // ----- Settings -----
     const idle = select([[1, '1 minute'], [2, '2 minutes'], [5, '5 minutes'], [10, '10 minutes'], [0, 'Never']], s.idleMin, (v) => { s.idleMin = Number(v); save(); LS.toast('Auto-Lock: ' + (Number(v) ? v + ' min' : 'Never')); }, 'Auto-Lock');
@@ -76,7 +76,7 @@
       row('Theme', seg([['light', 'Light'], ['dark', 'Dark']], s.theme, (v) => { s.theme = v; save(); LS.applyTheme(); })),
       row('Auto-Lock', idle),
       row('Set new passcode', btn('Set…', async () => { if (await LS.pinPad({ mode: 'setup', title: 'New passcode', sub: 'Choose 4 to 6 digits' })) { LS.toast('Passcode changed'); LS.resetLockEntry(); } })),
-      row('Reset passcode to default', btn('Reset', async () => { if (await LS.confirm('Reset passcode?', 'The LockShell passcode goes back to the default.', 'Reset', true)) { await LS.setPin('1234'); LS.resetLockEntry(); LS.toast('Passcode reset to default'); } }, 'danger')),
+      row('Reset passcode to default', btn('Reset', async () => { if (await LS.confirm('Reset passcode?', 'The ShellOS passcode goes back to the default.', 'Reset', true)) { await LS.setPin('1234'); LS.resetLockEntry(); LS.toast('Passcode reset to default'); } }, 'danger')),
       row('Reset lockout timer', btn('Reset', () => { LS.resetLockout && LS.resetLockout(); LS.toast('Lockout cleared'); }))));
 
     const voiceSel = el('select', { 'aria-label': 'Voice' });
@@ -89,6 +89,13 @@
       row('Speak replies', toggle(b.speak, (v) => { b.speak = v; save(); }, 'Speak replies')),
       row('Voice', voiceSel), row('Speed', range('rate', 0.5, 1.6, 0.1)), row('Pitch', range('pitch', 0.5, 1.8, 0.1)),
       row('Test voice', btn('▶︎ Test', () => { LS.primeSpeech && LS.primeSpeech(); LS.speak('Developer voice test. One, two, three.', true); }))));
+
+    p.append(head('Voice Buddy (shake)'), group(
+      row('Shake for Buddy', toggle(s.shake, async (v) => { s.shake = v; save(); if (v && LS.voice && s.motionPerm !== 'granted') await LS.voice.requestMotion(); }, 'Shake for Buddy')),
+      row('Sensitivity', seg([['low', 'Low'], ['med', 'Medium'], ['high', 'High']], s.shakeSens, (v) => { s.shakeSens = v; save(); })),
+      row('Motion permission', el('span', { class: 'val dev-val', text: s.motionPerm + (LS.voice && LS.voice.needsPermission() ? ' (iOS prompt)' : '') })),
+      row('Request motion', btn('Request', async () => { const r = LS.voice ? await LS.voice.requestMotion() : 'n/a'; LS.toast('Motion: ' + r); repaint(); })),
+      row('Speech recognition', el('span', { class: 'val dev-val', text: LS.voice && LS.voice.supported ? 'available' : 'not available' }))));
 
     const micOut = out();
     p.append(head('Microphone'), group(
@@ -124,15 +131,17 @@
     });
     p.append(head('Home Screen Apps'), group(...appRows));
 
-    // ----- Add apps & games -----
+    // ----- Apps & games (on by default) -----
     const addRows = [...LS.EXTRAS.apps, ...LS.EXTRAS.games].map((id) => {
       const [name, desc, ic, bg] = EXTRA_INFO[id];
       return el('div', { class: 'set-row dev-add', 'data-extra': id },
         el('span', { class: 'lab' }, U().mini(ic, bg), el('span', { class: 'two' }, el('span', { text: name }), el('small', { text: desc }))),
-        toggle(LS.hasExtra(id), (v) => { LS.setExtra(id, v); LS.renderHome(); LS.toast((v ? 'Added ' : 'Removed ') + name); setTimeout(repaint, 250); }, 'Add ' + name));
+        toggle(LS.hasExtra(id), (v) => { LS.setExtra(id, v); LS.renderHome(); LS.toast((v ? 'Showing ' : 'Hid ') + name); setTimeout(repaint, 250); }, 'Include ' + name));
     });
-    p.append(el('div', { class: 'set-head', id: 'devAdd', text: 'Add Apps & Games' }), group(...addRows),
-      foot('Apps appear on the Home screen and games appear inside the Games app once added. Buddy can open them only after they are added.'));
+    p.append(el('div', { class: 'set-head', id: 'devAdd', text: 'Apps & Games' }), group(...addRows),
+      foot('These are on by default. Turn one off to hide it from the Home screen (apps) or the Games app (games). Buddy can only open the ones that are on.'));
+
+    buildShell(p);
 
     // ----- Data -----
     const lsKeys = [];
@@ -191,6 +200,52 @@
       row('Force update', btn('Update now', forceUpdate, 'danger'))), toolOut);
 
     p.append(el('button', { class: 'primary-btn dev-exit', text: 'Exit Developer Tools', onclick: exit }));
+  }
+
+  /* ---------- Shell (browser) controls ---------- */
+  function buildShell(p) {
+    const { group, head, foot, row, toggle, seg } = U();
+    const sh = LS.settings.shell, F = window.ShellFilter;
+    p.append(el('div', { class: 'set-head', id: 'devShell', text: 'Shell browser' }), group(
+      row('Wikipedia', seg([['simple', 'Simple'], ['en', 'English']], sh.wiki, (v) => { sh.wiki = v; save(); LS.toast(v === 'en' ? 'Shell uses English Wikipedia' : 'Shell uses Simple English Wikipedia'); })),
+      row('Show images', toggle(!!sh.images, (v) => { sh.images = v; save(); }, 'Show Wikipedia images'))),
+      foot('Simple English is the default and the safest. Images come only from upload.wikimedia.org when on.'));
+    // Allowed sites
+    const ready = window.SHELL_FRAME_HOSTS || [];
+    const siteRows = F.SITES.map((x) => {
+      const off = (sh.removedSites || []).includes(x.host);
+      return row(x.name, el('span', { class: 'val' }, el('small', { class: 'dev-host', text: x.host }), btn(off ? 'Restore' : 'Remove', () => { sh.removedSites = off ? sh.removedSites.filter((h) => h !== x.host) : (sh.removedSites || []).concat(x.host); save(); repaint(); }, off ? '' : 'danger')));
+    }).concat((sh.addSites || []).map((h) => row(h, el('span', { class: 'val' }, el('small', { class: 'dev-host', text: ready.includes(h) ? 'custom' : 'custom · restart needed' }), btn('Remove', () => { sh.addSites = sh.addSites.filter((x) => x !== h); save(); repaint(); }, 'danger')))));
+    const siteIn = el('input', { class: 'txt-in', type: 'text', placeholder: 'example.org', maxlength: 100, 'aria-label': 'Add allowed site', autocapitalize: 'off', autocorrect: 'off' });
+    p.append(head('Allowed kid websites'), group(...siteRows),
+      el('form', { class: 'wx-search', onsubmit: (e) => { e.preventDefault(); const h = F.cleanHost(siteIn.value); if (!h) { LS.toast('Not a valid website'); return; } if (F.siteFor(h, LS.shellSites())) { LS.toast('Already allowed'); return; } sh.addSites = (sh.addSites || []).concat(h); save(); LS.toast('Added ' + h + '. Restart ShellOS to use it.'); repaint(); } }, siteIn, el('button', { class: 'pill-btn', type: 'submit', text: 'Add' })),
+      foot('Only add sites made for kids. A site must allow being shown in a frame (many block it). New sites start working after ShellOS restarts, because the frame policy is set at start-up.'),
+      group(row('Restart ShellOS', btn('Restart', () => location.reload()))));
+    // Custom blocked words
+    const words = el('div', { class: 'dev-chips' });
+    (sh.blockWords || []).forEach((w) => words.append(el('button', { class: 'dev-chip', text: w + ' ✕', 'aria-label': 'Remove ' + w, onclick: () => { sh.blockWords = sh.blockWords.filter((x) => x !== w); save(); repaint(); } })));
+    if (!(sh.blockWords || []).length) words.append(el('span', { class: 'muted', text: 'No custom words yet.' }));
+    const wIn = el('input', { class: 'txt-in', type: 'text', placeholder: 'Word or phrase to block', maxlength: 60, 'aria-label': 'Add blocked word' });
+    p.append(head('Custom blocked words'), words,
+      el('form', { class: 'wx-search', onsubmit: (e) => { e.preventDefault(); const w = wIn.value.trim().toLowerCase(); if (!w) return; if (!(sh.blockWords || []).includes(w)) sh.blockWords = (sh.blockWords || []).concat(w); save(); repaint(); } }, wIn, el('button', { class: 'pill-btn', type: 'submit', text: 'Block' })),
+      foot('Blocks any search, title, category or article text that contains these words.'));
+    // Filter tester
+    const tIn = el('input', { class: 'txt-in', type: 'text', placeholder: 'Article title or search words', maxlength: 120, 'aria-label': 'Shell filter test' });
+    const tOut = out(); tOut.classList.add('dev-shell-out');
+    p.append(head('Shell filter tester'), el('form', { class: 'wx-search', onsubmit: async (e) => {
+      e.preventDefault(); const q = tIn.value.trim(); if (!q) return;
+      const o = { fetch: (u, x) => window.fetch(u, x), host: sh.wiki === 'en' ? 'en.wikipedia.org' : 'simple.wikipedia.org', extraWords: sh.blockWords || [] };
+      const qc = F.checkQuery(q, o);
+      show(tOut, 'Checking "' + q + '"…');
+      const a = qc.blocked ? qc : await F.loadArticle(q, o);
+      show(tOut, (a.blocked ? '⛔ BLOCKED · ' + a.category + '\n' + a.reason : '✅ SHOWN as "' + a.title + '"\nwords ' + a.stats.words + ' · sexual ' + a.stats.sexual + ' · graphic ' + a.stats.graphic + ' · self-harm ' + a.stats.selfharm), a.blocked ? 'bad' : 'ok');
+    } }, tIn, el('button', { class: 'pill-btn', type: 'submit', text: 'Test' })), tOut);
+    // History
+    const hist = LS.shellHistory ? LS.shellHistory().slice().reverse() : [];
+    const hBox = el('div', { class: 'dev-log dev-hist' });
+    if (!hist.length) hBox.append(el('div', { class: 'muted', text: 'No Shell visits yet.' }));
+    hist.forEach((h) => hBox.append(el('div', { class: h.blocked ? 'dev-log-error' : '' }, el('small', { text: new Date(h.t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' · ' + h.kind + (h.blocked ? ' · BLOCKED' : '') }), el('div', { text: h.target + (h.reason ? '  (' + h.reason + ')' : '') }))));
+    p.append(el('div', { class: 'dev-head-row' }, el('div', { class: 'set-head', text: 'Shell history (' + hist.length + ')' }), btn('Clear', () => { LS.clearShellHistory(); repaint(); })), hBox);
   }
 
   function viewKey(k) {

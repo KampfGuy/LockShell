@@ -3,19 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>LockShell</title>
-<meta name="description" content="LockShell: a kiosk-style lock screen and home screen of safe apps for iPhone.">
+<title>ShellOS</title>
+<meta name="description" content="ShellOS: a kid-safe, kiosk-style lock screen and home screen of safe apps for iPhone.">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="LockShell">
+<meta name="apple-mobile-web-app-title" content="ShellOS">
+<meta name="application-name" content="ShellOS">
 <meta name="format-detection" content="telephone=no, email=no, address=no">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="css/app.css">
-<script>try{var s=JSON.parse(localStorage.getItem('lockshell.settings.v2')||'{}');if(s.theme==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
+<script src="js/shell-filter.js"></script>
+<script>
+/* Theme before paint, and a Content-Security-Policy that only lets frames load the allowed kid sites.
+   frame-src also stops an allowed site from navigating its own frame to any other website. Fails closed to 'none'. */
+(function () {
+  var s = {}, hosts = [];
+  try { s = JSON.parse(localStorage.getItem('lockshell.settings.v3') || localStorage.getItem('lockshell.settings.v2') || '{}') || {}; } catch (e) {}
+  if (s.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  try {
+    var sh = s.shell || {}, off = sh.removedSites || [];
+    hosts = ShellFilter.SITES.map(function (x) { return x.host; }).filter(function (h) { return off.indexOf(h) < 0; }).concat(sh.addSites || []);
+    hosts = hosts.filter(function (h) { return typeof h === 'string' && /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h); });
+  } catch (e) { hosts = []; }
+  var src = [];
+  hosts.forEach(function (h) { var b = h.replace(/^www\./, ''); src.push('https://' + b, 'https://www.' + b); });
+  var m = document.createElement('meta'); m.httpEquiv = 'Content-Security-Policy';
+  m.content = 'frame-src ' + (src.length ? src.join(' ') : "'none'") + "; object-src 'none'; form-action 'self'";
+  document.head.appendChild(m);
+  window.SHELL_FRAME_HOSTS = hosts;
+})();
+</script>
 </head>
 <body>
 <div id="root">
@@ -24,6 +45,7 @@
     <div class="statusbar"><span class="sb-time"></span><span class="sb-right"><span class="sb-mic" hidden title="Listening for Buddy">Buddy</span><span class="sb-batt" hidden></span></span></div>
     <div class="lock-clock">
       <div class="lock-glyph" id="lockGlyph"></div>
+      <div class="lock-brand">ShellOS</div>
       <div class="clock-date" id="clockDate"></div>
       <div class="clock-time" id="clockTime">12:00</div>
     </div>
@@ -45,7 +67,8 @@
       <button class="lock-btn" id="homeLock" aria-label="Lock"></button>
     </div>
     <div class="tiles" id="tiles"></div>
-    <div class="dock-hint" id="dockHint">Tap 🔒 to lock before handing the phone back</div>
+    <div class="dock-hint" id="dockHint">Tap 🔒 to lock before handing it back</div>
+    <button class="voice-fab" id="voiceFab" aria-label="Talk to Buddy"></button>
   </section>
 
   <!-- APP SCREEN -->
@@ -67,6 +90,7 @@
 <script src="js/core.js"></script>
 <script src="js/buddy-brain.js"></script>
 <script src="js/buddy.js"></script>
+<script src="js/voice.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/recorder.js"></script>
 <script src="js/notes.js"></script>
@@ -75,6 +99,7 @@
 <script src="js/games2.js"></script>
 <script src="js/tools.js"></script>
 <script src="js/apps2.js"></script>
+<script src="js/shell.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/dev.js"></script>
 <script src="js/boot.js"></script>
