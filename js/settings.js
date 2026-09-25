@@ -60,11 +60,12 @@
         row('Auto-Lock', select([[1, '1 minute'], [2, '2 minutes'], [5, '5 minutes'], [10, '10 minutes'], [0, 'Never']], s.idleMin, async (v) => {
           if (await LS.requirePin('Enter passcode to change Auto-Lock')) { s.idleMin = Number(v); save(); LS.toast('Auto-Lock updated'); } else paint();
         }, 'Auto-Lock'), { icon: ['lock', '#34c759'] })),
-      foot('LockShell returns to its lock screen after this much idle time. The real phone lock comes from Guided Access (see Help).'),
+      foot('ShellOS returns to its lock screen after this much idle time. The real phone lock comes from Guided Access (see Help).'),
       head('Buddy & Voice'),
       group(
         row('Buddy', chev(cap(s.buddy.style)), { icon: ['chat', '#30b0c7'], onclick: () => push('Buddy', buddyPage) }),
-        row('Microphone', chev(permLabel()), { icon: ['mic', '#ff3b30'], onclick: () => push('Microphone', micPage) })),
+        row('Microphone', chev(permLabel()), { icon: ['mic', '#ff3b30'], onclick: () => push('Microphone', micPage) }),
+        row('Shake for Buddy', chev(s.shake ? 'On' : 'Off'), { icon: ['shake', '#af52de'], onclick: () => push('Shake for Buddy', shakePage) })),
       head('Apps'),
       group(
         row('Weather Units', seg([['F', '°F'], ['C', '°C']], s.weatherUnit, (v) => { s.weatherUnit = v; save(); }), { icon: ['⛅', '#5ac8fa'] }),
@@ -117,7 +118,7 @@
         row('Test voice', el('button', { class: 'pill-btn', text: '▶︎ Test', onclick: () => { LS.primeSpeech && LS.primeSpeech(); LS.speak("Hi! I'm Buddy. This is how I sound.", true); } }))),
       foot(hasTTS ? 'On iPhone, more voices can be downloaded in Settings > Accessibility > Spoken Content > Voices.' : 'Spoken replies are not supported in this browser.'),
       head('Chat safety'),
-      foot('Every message is checked first. Buddy refuses anything explicit or harmful and never helps get past the lock. Chats are kept in memory only and are erased whenever LockShell locks.')
+      foot('Every message is checked first. Buddy refuses anything explicit or harmful and never helps get past the lock. Chats are kept in memory only and are erased whenever ShellOS locks.')
     );
   }
 
@@ -132,15 +133,31 @@
         if (v && s.micPerm !== 'granted') LS.requestMic().then(() => paint());
         if (LS.wake) LS.wake.reset();
       }, 'Listen for Buddy'))),
-      foot(sup ? 'While LockShell is open and unlocked, say "Hey Buddy" and a question, like "Hey Buddy, what time is it?". A green dot shows at the top while listening. iPhone may stop listening at any time; tap the mic in Buddy instead if it does. It never listens while locked or in the background.'
+      foot(sup ? 'While ShellOS is open and unlocked, say "Hey Buddy" and a question, like "Hey Buddy, what time is it?". A green dot shows at the top while listening. iPhone may stop listening at any time; tap the mic in Buddy instead if it does. It never listens while locked or in the background.'
         : 'Speech recognition is not available in this browser, so the wake word and voice input are off. You can still type to Buddy.'),
       head('Permission'),
       group(
         row('Microphone access', st),
         row('Ask again', el('button', { class: 'pill-btn', text: 'Request', onclick: async () => { const r = await LS.requestMic(); LS.toast('Microphone: ' + permLabel()); if (r === 'granted' && LS.wake) LS.wake.reset(); paint(); } }))),
       s.micPerm === 'denied'
-        ? el('div', { class: 'help' }, el('div', { class: 'warn' }, 'The microphone is blocked for LockShell. To allow it on iPhone: open the Settings app > Safari > Microphone > Allow (or Ask). In Safari you can also tap the "aA" button in the address bar > Website Settings > Microphone > Allow. Then come back and tap Request.'))
+        ? el('div', { class: 'help' }, el('div', { class: 'warn' }, 'The microphone is blocked for ShellOS. To allow it on iPhone: open the Settings app > Safari > Microphone > Allow (or Ask). In Safari you can also tap the "aA" button in the address bar > Website Settings > Microphone > Allow. Then come back and tap Request.'))
         : foot('The microphone is used for Voice Recorder, talking to Buddy and the wake word. Nothing is uploaded.')
+    );
+  }
+
+  /* ---------- Shake for Buddy ---------- */
+  function shakePage(p) {
+    const s = LS.settings, V = LS.voice || {};
+    const perm = { granted: 'Allowed', denied: 'Blocked', unavailable: 'Not on this device', unknown: V.needsPermission && V.needsPermission() ? 'Not asked' : 'Allowed' }[s.motionPerm] || 'Not asked';
+    p.append(
+      head('Voice-only Buddy'),
+      group(
+        row('Shake for Buddy', toggle(s.shake, async (v) => { s.shake = v; save(); if (v && s.motionPerm !== 'granted' && V.requestMotion) { await V.requestMotion(); paint(); } }, 'Shake for Buddy')),
+        row('Sensitivity', seg([['low', 'Low'], ['med', 'Medium'], ['high', 'High']], s.shakeSens, (v) => { s.shakeSens = v; save(); })),
+        row('Motion access', el('span', { class: 'val', text: perm })),
+        row('Allow motion', el('button', { class: 'pill-btn', text: 'Request', onclick: async () => { if (V.requestMotion) { const r = await V.requestMotion(); LS.toast('Motion: ' + r); paint(); } } })),
+        row('Try it now', el('button', { class: 'pill-btn', text: '🎙️ Open', onclick: () => { LS.closeApp(); setTimeout(() => V.open && V.open({ from: 'settings' }), 80); } }))),
+      foot('Shake the phone (while it is unlocked) to talk to Buddy with just your voice. You can also tap the mic button on the Home screen, or say "Hey Buddy" if the wake word is on. Low needs a harder shake. iPhone cannot use the volume buttons for this, because web apps are not allowed to read them.')
     );
   }
 
@@ -202,44 +219,78 @@
   function helpPage(p) {
     const h = el('div', { class: 'help' });
     h.innerHTML = `
-      <div class="warn"><b>Important:</b> a web app cannot lock your iPhone by itself. LockShell's lock screen only protects LockShell. To stop someone leaving the app (pressing Home, swiping up, opening other apps), turn on <b>Guided Access</b>, which is built into iOS.</div>
+      <div class="warn"><b>Important:</b> a web app cannot lock your iPhone by itself. ShellOS's lock screen only protects ShellOS. To stop someone leaving the app (pressing Home, swiping up, opening other apps), turn on <b>Guided Access</b>, which is built into iOS.</div>
       <h3>iPhone setup</h3>
       <ol>
-        <li><b>Install:</b> open LockShell in <b>Safari</b>, tap the <b>Share</b> button, then <b>Add to Home Screen</b> &gt; <b>Add</b>.</li>
+        <li><b>Install:</b> open ShellOS in <b>Safari</b>, tap the <b>Share</b> button, then <b>Add to Home Screen</b> &gt; <b>Add</b>.</li>
         <li><b>Turn on Guided Access:</b> open the <b>Settings</b> app &gt; <b>Accessibility</b> &gt; <b>Guided Access</b> and switch it on.</li>
-        <li>Tap <b>Passcode Settings</b> &gt; <b>Set Guided Access Passcode</b>. Use a code that is different from LockShell's passcode and from your iPhone passcode.</li>
-        <li>Open <b>LockShell from the Home Screen</b> icon (not from Safari).</li>
-        <li><b>Triple-click the side button</b> and tap <b>Start</b>. The phone now stays inside LockShell.</li>
+        <li>Tap <b>Passcode Settings</b> &gt; <b>Set Guided Access Passcode</b>. Use a code that is different from ShellOS's passcode and from your iPhone passcode.</li>
+        <li>Open <b>ShellOS from the Home Screen</b> icon (not from Safari).</li>
+        <li><b>Triple-click the side button</b> and tap <b>Start</b>. The phone now stays inside ShellOS.</li>
         <li>To end: <b>triple-click the side button</b>, enter the Guided Access passcode, and tap <b>End</b>.</li>
       </ol>
       <p class="muted">Tip: in Guided Access Options you can turn off the side button, volume buttons, or set a time limit.</p>
-      <h3>LockShell basics</h3>
+      <h3>ShellOS basics</h3>
       <ol>
-        <li>The default LockShell passcode is <b>1234</b>. Change it in Settings &gt; Change Passcode.</li>
-        <li>Tap the lock button on the Home screen to hand the phone back safely. LockShell also locks itself after the Auto-Lock time.</li>
+        <li>The default ShellOS passcode is <b>1234</b>. Change it in Settings &gt; Change Passcode.</li>
+        <li>Tap the lock button on the Home screen to hand the phone back safely. ShellOS also locks itself after the Auto-Lock time.</li>
         <li>Photos, recordings, drawings and notes stay on this phone. Manage them in Settings &gt; Storage.</li>
         <li>If Camera or Microphone are blocked: Settings app &gt; Safari &gt; Camera / Microphone &gt; Allow, or the "aA" menu in Safari &gt; Website Settings.</li>
       </ol>
+      <h3>Shell (safe browser)</h3>
+      <ol>
+        <li>Type a topic to search <b>Simple English Wikipedia</b>. Every article is checked before it is shown; blocked pages show "This page isn't available on ShellOS".</li>
+        <li>The tiles on the Shell home page open checked kid websites. Other website addresses are blocked.</li>
+        <li>For extra protection, also turn on <b>Screen Time &gt; Content &amp; Privacy Restrictions &gt; Web Content &gt; Limit Adult Websites</b> (see About).</li>
+      </ol>
+      <h3>Voice Buddy</h3>
+      <ol>
+        <li>Shake the phone, tap the mic button on the Home screen, or say "Hey Buddy" (if the wake word is on) to talk with just your voice.</li>
+        <li>Change this in Settings &gt; Shake for Buddy. iPhone asks once to allow Motion &amp; Orientation.</li>
+      </ol>
       <h3>Android</h3>
       <ol>
-        <li>Open LockShell in Chrome, tap the ⋮ menu &gt; <b>Add to Home screen</b> (or Install app).</li>
+        <li>Open ShellOS in Chrome, tap the ⋮ menu &gt; <b>Add to Home screen</b> (or Install app).</li>
         <li>Turn on <b>App pinning</b>: Settings &gt; Security (or Security &amp; privacy &gt; More security settings) &gt; <b>App pinning</b>, and turn on "Ask for PIN before unpinning".</li>
-        <li>Open LockShell, open the Recents/Overview screen, tap the LockShell icon at the top of its card, then <b>Pin</b>.</li>
+        <li>Open ShellOS, open the Recents/Overview screen, tap the ShellOS icon at the top of its card, then <b>Pin</b>.</li>
         <li>To unpin: hold Back and Overview (or swipe up and hold), then enter your PIN.</li>
       </ol>
       <h3>Known limits</h3>
       <ol>
         <li>iPhone doesn't let web apps read the battery level, so no battery is shown there.</li>
-        <li>The "Hey Buddy" wake word only works while LockShell is open, unlocked and on screen, and iOS may stop it at any time.</li>
+        <li>The "Hey Buddy" wake word only works while ShellOS is open, unlocked and on screen, and iOS may stop it at any time.</li>
         <li>Weather needs the internet. The last forecast is saved for offline use.</li>
+        <li>Web apps can't read the volume buttons, so voice Buddy opens with a shake or the mic button.</li>
+        <li>Shell and Weather need the internet.</li>
       </ol>`;
     p.append(h);
   }
   function aboutPage(p) {
+    const apps = LS.homeOrder.filter((id) => LS.apps[id] && !LS.apps[id].hiddenApp).map((id) => LS.apps[id].label || LS.apps[id].title);
+    const games = (LS.gameList ? LS.gameList() : []).map((g) => g.name);
+    const sec = (title, html) => { const d = el('div', { class: 'help about-sec' }); d.innerHTML = '<h3>' + title + '</h3>' + html; return d; };
+    const li = (arr) => '<ul>' + arr.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
     p.append(
-      el('div', { class: 'about-hero' }, el('img', { src: 'icons/icon-192.png', alt: '' }), el('h2', { text: 'LockShell' }), el('p', { class: 'muted', text: 'Version ' + (LS.VERSION || '1.0') })),
-      group(row('Works offline', el('span', { class: 'val', text: 'Yes' })), row('Accounts or tracking', el('span', { class: 'val', text: 'None' })), row('Data location', el('span', { class: 'val', text: 'This phone only' }))),
-      foot('A calm, kiosk-style home for a shared iPhone: a lock screen and a set of safe apps. Weather comes from Open-Meteo.com (free, no key). Buddy is a small offline helper with a safety filter. Use iOS Guided Access to keep the phone inside LockShell.')
+      el('div', { class: 'about-hero' }, el('img', { src: 'icons/icon-192.png', alt: '' }), el('h2', { text: 'ShellOS' }), el('p', { class: 'muted', text: 'Version ' + (LS.VERSION || '1.0') + ' · Built ' + (LS.BUILD_DATE || '') })),
+      group(row('Works offline', el('span', { class: 'val', text: 'Yes (except Weather and Shell)' })), row('Accounts or tracking', el('span', { class: 'val', text: 'None' })), row('Data location', el('span', { class: 'val', text: 'This phone only' }))),
+      sec('Apps (' + apps.length + ')', '<p>' + LS.esc(apps.join(', ')) + '</p>'),
+      sec('Games (' + games.length + ')', '<p>' + LS.esc(games.join(', ')) + '</p>'),
+      sec('Buddy', '<p><b>Can:</b> tell the time and date, do math, convert units, explain simple words, tell jokes, fun facts and riddles, flip coins and roll dice, open apps and games, and search Shell for you. Shake the phone or tap the mic button to talk with just your voice.</p><p><b>Can\'t:</b> go on the internet, remember chats after the phone locks, or help with anything unsafe. It refuses sexual, violent, drug, hacking, hateful or self-harm topics, and never helps get past the lock, the passcode, the web filter or Guided Access. If someone sounds sad or unsafe, it points them to a trusted adult and 988.</p>'),
+      sec('Safety', li([
+        '<b>Buddy filter:</b> every message is checked before Buddy answers (including leetspeak and spaced-out words), and every reply is checked again before it is shown or spoken.',
+        '<b>Shell filter:</b> Wikipedia (Simple English) is shown inside ShellOS only after the title, the article categories and the whole article text pass the filter. Sexual topics are always blocked. War and history are allowed, but pages about massacres, genocide, torture, terrorism, executions or other graphic events are blocked. Searches are filtered too. If a check cannot finish, the page is not shown.',
+        '<b>Kid websites:</b> only a short list of checked kid sites can open, inside a locked frame that cannot open pop-ups, leave ShellOS, or go to other websites. Any other address is blocked.',
+        'Images in Wikipedia are off by default.'
+      ])),
+      sec('Privacy', '<p>Everything you make (photos, recordings, drawings, notes, events, scores, settings) stays on this phone. There are no accounts, ads or tracking in ShellOS. The only network use is <b>Open-Meteo</b> for weather, <b>Wikipedia</b> for Shell articles, and the kid websites you choose to open in Shell (those sites have their own privacy rules).</p>'),
+      sec('iPhone limits', li([
+        'No battery level: iPhone does not let web apps read the battery.',
+        'No volume buttons: web apps cannot read them, so voice Buddy uses a shake or the mic button instead.',
+        'The "Hey Buddy" wake word only works while ShellOS is open, unlocked and on screen.',
+        'ShellOS cannot lock the phone by itself. Turn on <b>Guided Access</b> (Settings &gt; Accessibility &gt; Guided Access) so the phone stays inside ShellOS. See Help &amp; Setup.'
+      ])),
+      sec('Recommended: Screen Time', '<ol><li>Open the <b>Settings</b> app &gt; <b>Screen Time</b> &gt; turn it on and set a Screen Time passcode.</li><li>Tap <b>Content &amp; Privacy Restrictions</b> and turn it on.</li><li>Tap <b>App Store, Media, Web &amp; Games</b> (or <b>Content Restrictions</b>) &gt; <b>Web Content</b> &gt; <b>Limit Adult Websites</b>.</li><li>This adds Apple\'s own filter on top of ShellOS for every website.</li></ol>'),
+      sec('Credits', '<p>Made by <b>Kampf Kaiser</b> (KampfGuy). Project name: LockShell. Weather data by Open-Meteo.com. Articles from Wikipedia (CC BY-SA). Kid websites belong to their owners.</p>')
     );
   }
 

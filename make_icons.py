@@ -1,4 +1,4 @@
-"""Generate LockShell icons: a blue lock on a white background (matches the white iOS design)."""
+"""Generate ShellOS (LockShell) icons: a blue lock on a white background (matches the white iOS design)."""
 from PIL import Image, ImageDraw
 
 BLUE = (0, 122, 255)

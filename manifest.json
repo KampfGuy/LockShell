@@ -1,7 +1,7 @@
 {
-  "name": "LockShell",
-  "short_name": "LockShell",
-  "description": "A kiosk-style lock screen and home screen of safe apps.",
+  "name": "ShellOS",
+  "short_name": "ShellOS",
+  "description": "ShellOS: a kid-safe, kiosk-style lock screen and home screen of safe apps.",
   "id": "./",
   "start_url": "./index.html",
   "scope": "./",

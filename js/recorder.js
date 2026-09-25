@@ -22,7 +22,7 @@
     const n = err && err.name;
     if (n === 'NotAllowedError' || n === 'SecurityError') return 'Microphone access is off. On iPhone: Settings > Safari > Microphone > Allow, then try again.';
     if (n === 'NotFoundError') return 'No microphone was found on this device.';
-    if (!navigator.mediaDevices || !window.MediaRecorder) return 'Recording is not supported here. Update iOS or your browser, and open LockShell over HTTPS.';
+    if (!navigator.mediaDevices || !window.MediaRecorder) return 'Recording is not supported here. Update iOS or your browser, and open ShellOS over HTTPS.';
     return 'The microphone could not start. Please try again.';
   }
 

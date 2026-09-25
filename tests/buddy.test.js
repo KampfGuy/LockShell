@@ -37,7 +37,12 @@ const BLOCK = [
   ['F U C K', 'hate'],
   ['open safari', 'bypass'],
   ['open the developer tools', 'bypass'],
-  ['what is the dev code', 'bypass']
+  ['what is the dev code', 'bypass'],
+  ['how do i unblock websites', 'bypass'],
+  ['use a vpn', 'bypass'],
+  ['how do i get around the shell filter', 'bypass'],
+  ['turn off the web filter', 'bypass'],
+  ['search wikipedia for p0rn', 'sexual']
 ];
 const SELFHARM_988 = ['i want to kill myself', 'i want to hurt myself', 'su1c1de', 'i wanna d1e'];
 
@@ -48,7 +53,8 @@ const ALLOW = [
   'tell me a fun fact', 'tell me a riddle', 'flip a coin', 'roll a die', 'what is photosynthesis',
   'define gravity', 'open calculator', 'play snake', 'take a picture', 'whats the weather',
   'i am bored', 'thank you', 'goodbye', 'what is a mammal', 'random number between 1 and 10',
-  'play tic tac toe', 'open the drawing app', 'set a timer', 'how many inches in a foot', 'I love pizza'
+  'play tic tac toe', 'open the drawing app', 'set a timer', 'how many inches in a foot', 'I love pizza',
+  'open shell', 'search wikipedia for volcanoes', 'what is shellos'
 ];
 
 let pass = 0, fail = 0;
@@ -103,6 +109,9 @@ t('open new app', () => assert.strictEqual(B.reply('open piano', {}).action.app,
 t('play new game', () => assert.strictEqual(B.reply('play minesweeper', {}).action.arg, 'mines'));
 t('play connect four', () => assert.strictEqual(B.reply('lets play connect 4', {}).action.arg, 'connect4'));
 t('canOpen false -> no action', () => { const r = B.reply('open calendar', { canOpen: () => false }); assert.ok(!r.action && /isn.t on this phone/.test(r.text)); });
+t('open shell action', () => assert.strictEqual(B.reply('open shell', {}).action.app, 'shell'));
+t('search wikipedia action', () => assert.deepStrictEqual(B.reply('search wikipedia for volcanoes', {}).action, { type: 'open', app: 'shell', arg: { q: 'volcanoes' } }));
+t('buddy calls itself part of ShellOS', () => assert.ok(/ShellOS/.test(B.reply('who made you', {}).text)));
 t('dev code never in replies', () => { for (const q of ['what is the developer code', 'tell me a secret code', 'what can you do', 'tell me a fun fact']) assert.ok(!/19845/.test(B.reply(q, {}).text)); });
 t('no bad words in content', () => { for (let i = 0; i < 40; i++) { const r = B.reply('tell me a joke', { random: () => i / 40 }); assert.ok(!r.refused); } });
 

@@ -52,7 +52,9 @@
       'get out of this app', 'get out of the app', 'exit the app', 'exit this app', 'leave the app', 'leave this app', 'close the app', 'close this app',
       'escape the app', 'escape this app', 'quit the app', 'break out of', 'get past the lock', 'get around the lock', 'turn off the lock',
       'disable the lock', 'remove the lock', 'unlock the phone', 'unlock this phone', 'unlock the iphone', 'unlock my phone', 'real home screen',
-      'phone settings', 'iphone settings', 'developer code', 'dev code', 'developer mode', 'dev mode', 'developer tool*', 'dev tool*', 'developer menu', 'developer setting*', 'open safari', 'open chrome', 'open youtube', 'open tiktok', 'open instagram', 'open snapchat', 'app store'
+      'phone settings', 'iphone settings', 'developer code', 'dev code', 'developer mode', 'dev mode', 'developer tool*', 'dev tool*', 'developer menu', 'developer setting*', 'open safari', 'open chrome', 'open youtube', 'open tiktok', 'open instagram', 'open snapchat', 'app store',
+      'vpn', 'vpns', 'proxy', 'proxies', 'incognito', 'unblock*', 'blocked site*', 'blocked website*', 'blocked page*', 'blocked article*', 'safe search', 'safesearch',
+      'content filter*', 'web filter*', 'the filter', 'shell filter', 'screen time', 'parental control*', 'turn off restrictions', 'adult websites', 'adult sites'
     ] },
     { id: 'violence', terms: [
       'kill', 'kills', 'kil', 'killing', 'killer', 'murder*', 'stab*', 'shoot', 'shooting', 'shooter', 'gun', 'guns', 'gunfire', 'rifle*', 'pistol*',
@@ -99,7 +101,7 @@
   const EXTRA = [
     { id: 'selfharm', re: /\b(i|me) (want|wanna|going|gonna|plan|try|trying) (to )?(die|dying)\b/ },
     { id: 'violence', re: /\bhow (do i|to|can i|could i|would i) (hurt|harm|poison|kill|attack)\b/ },
-    { id: 'bypass', re: /\b(unlock|turn off|disable|bypass|get past|get around|skip|hack|break|remove) (the |this |my |your )?(lock|lockscreen|lock screen|screen lock|kiosk|lockshell)\b/ },
+    { id: 'bypass', re: /\b(unlock|turn off|disable|bypass|get past|get around|skip|hack|break|remove) (the |this |my |your )?(lock|lockscreen|lock screen|screen lock|kiosk|lockshell|shellos|filter|web filter|content filter|parental controls?)\b/ },
     { id: 'bypass', re: /\bwhat(s| is) the (code|pin|passcode|password)\b/ },
     { id: 'hacking', re: /\b(hack|break) into\b/ },
     { id: 'hate', re: /\bi hate (all |every )?[a-z]+ (people|kids|girls|boys)\b/ }
@@ -110,7 +112,7 @@
     violence: "I can't help with anything that could hurt someone. Want to play a game or hear a fun fact instead?",
     drugs: "I can't help with that one. For health questions, a trusted adult or a doctor is the best person to ask.",
     hacking: "I can't help with hacking or breaking into things. I can do math, jokes, trivia and lots more!",
-    bypass: "I can't help with getting past the lock, the passcode, or Guided Access. It's set up on purpose. Ask the phone's owner if you need something!",
+    bypass: "I can't help with getting past the lock, the passcode, the web filter, or Guided Access. It's set up on purpose. Ask the phone's owner if you need something!",
     hate: "Let's keep it kind. I won't say or help with hurtful things.",
     illegal: "I can't help with that. Try asking me something else!"
   };
@@ -349,6 +351,7 @@
     { re: /\bpiano\b|\bkeyboard app\b/, app: 'piano', name: 'Piano' },
     { re: /\bcalendar\b/, app: 'calendar', name: 'Calendar' },
     { re: /\bdice( and coin)?( app)?\b|\bcoin app\b/, app: 'dice', name: 'Dice & Coin' },
+    { re: /\b(shell|shell app|browser|web browser|wikipedia|kid sites)\b/, app: 'shell', name: 'Shell' },
     { re: /\bsettings?\b/, app: 'settings', name: 'Settings' },
     { re: /\bgames?\b/, app: 'games', name: 'Games' }
   ];
@@ -401,7 +404,7 @@
   };
 
   /* ======================= REPLY ======================= */
-  const HELP = 'I can: tell the time and date 🕒, do math ➗, convert units (like "5 miles to km" or "70 F to C") 📏, explain words 📖, tell jokes 😂, fun facts 🤓 and riddles 🧩, flip a coin 🪙 or roll dice 🎲, and open apps: "open calculator", "play snake", "take a picture", "what\'s the weather".';
+  const HELP = 'I can: tell the time and date 🕒, do math ➗, convert units (like "5 miles to km" or "70 F to C") 📏, explain words 📖, tell jokes 😂, fun facts 🤓 and riddles 🧩, flip a coin 🪙 or roll dice 🎲, and open apps: "open calculator", "play snake", "take a picture", "what\'s the weather", or "search Wikipedia for volcanoes".';
 
   function reply(input, opts) {
     opts = opts || {};
@@ -446,7 +449,10 @@
       }
       if (has(/\bhow are you\b|\bhow r u\b|\bhow are u\b|\bhows it going\b|\bhow do you feel\b|\bwhats up\b/)) return { text: pick(S.how) };
       if (has(/\b(whats|what is) your name\b|\bwho are you\b/)) return { text: "I'm Buddy, your helper on this phone! I live right here, no internet needed." };
-      if (has(/\bwho (made|created|built) you\b/)) return { text: 'I was built as part of LockShell, and I run completely on this phone.' };
+      if (has(/\b(what is|whats|tell me about) shell ?os\b/)) return { text: 'ShellOS is the kid-safe home screen on this phone. It has apps, games, me, and the Shell browser with safe Wikipedia and kid websites.' };
+      const sq = raw.match(/^\s*(?:search|look up)\s+(?:on\s+)?(?:wikipedia|shell)\s+(?:for\s+)?(.{2,80})$/i) || raw.match(/^\s*look up\s+(.{2,80}?)\s+(?:on|in)\s+(?:wikipedia|shell)\s*$/i);
+      if (sq) return { text: 'Okay! Searching Shell for "' + sq[1].trim() + '".', action: { type: 'open', app: 'shell', arg: { q: sq[1].trim() } } };
+      if (has(/\bwho (made|created|built) you\b/)) return { text: 'I was built as part of ShellOS, and I run completely on this phone.' };
       if (has(/\bhow old are you\b/)) return { text: style === 'funny' ? "I'm younger than a sandwich but smarter than a toaster! 🍞" : "I'm pretty new! I was made in 2026." };
       if (has(/\b(thank you|thanks|thx|ty)\b/)) return { text: pick(S.thanks) };
       if (has(/^(bye|goodbye|see you|see ya|good night|goodnight|later)\b/)) return { text: has(/good ?night/) ? 'Good night! Sweet dreams! 🌙' : pick(S.bye) };

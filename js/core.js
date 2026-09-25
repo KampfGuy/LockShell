@@ -1,4 +1,4 @@
-/* LockShell core: state, storage, passcode, router, idle, UI helpers */
+/* ShellOS core (LockShell project): state, storage, passcode, router, idle, UI helpers */
 (function () {
   'use strict';
   const LS = (window.LS = {});
@@ -66,23 +66,41 @@
     code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/>',
     piano: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16M12 4v16M16 4v16"/><path d="M6.5 4v8h3V4M14.5 4v8h3V4" fill="#fff"/>',
     calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.2h.01M12 17.2h.01"/>',
-    dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" stroke-width="3"/>'
+    dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" stroke-width="3"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>',
+    fwd: '<path d="M9 5l7 7-7 7"/>',
+    home: '<path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/>',
+    reload: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+    search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
+    shake: '<rect x="8" y="3" width="8" height="18" rx="2"/><path d="M11 18h2M4.5 8.5l-2 3.5 2 3.5M19.5 8.5l2 3.5-2 3.5"/>'
   };
   LS.iconNames = Object.keys(P);
   LS.icon = (name, extra) => `<svg viewBox="0 0 24 24" aria-hidden="true" ${extra || ''}>${P[name] || ''}</svg>`;
 
   /* ---------- Settings ---------- */
-  const SKEY = 'lockshell.settings.v2';
+  // v3 (ShellOS 1.2): optional apps/games are ON by default (extrasOff lists the ones turned off).
+  // Older v2 settings are migrated once; the passcode and all saved data use separate keys and are untouched.
+  const SKEY = 'lockshell.settings.v3', OLD_SKEY = 'lockshell.settings.v2';
   const DEFAULTS = {
     theme: 'light', idleMin: 2, hidden: [], weatherUnit: 'F',
     buddy: { speak: true, voiceURI: '', rate: 1, pitch: 1, style: 'friendly' },
-    wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null, manualPlace: false, extras: []
+    wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null, manualPlace: false, extrasOff: [],
+    shake: true, shakeSens: 'med', motionPerm: 'unknown',
+    shell: { wiki: 'simple', images: false, addSites: [], removedSites: [], blockWords: [] }
   };
   LS.settings = JSON.parse(JSON.stringify(DEFAULTS));
   try {
-    const saved = JSON.parse(localStorage.getItem(SKEY) || '{}');
+    let saved = JSON.parse(localStorage.getItem(SKEY) || 'null');
+    if (!saved) {
+      saved = JSON.parse(localStorage.getItem(OLD_SKEY) || '{}');
+      delete saved.extras; // old opt-in list: everything is on by default now
+      saved.migratedFrom = saved && Object.keys(saved).length ? 'v2' : undefined;
+    }
     Object.assign(LS.settings, saved);
     LS.settings.buddy = Object.assign({}, DEFAULTS.buddy, saved.buddy || {});
+    LS.settings.shell = Object.assign({}, DEFAULTS.shell, saved.shell || {});
+    if (!Array.isArray(LS.settings.extrasOff)) LS.settings.extrasOff = [];
+    localStorage.setItem(SKEY, JSON.stringify(LS.settings));
   } catch (e) {}
   LS.saveSettings = () => { try { localStorage.setItem(SKEY, JSON.stringify(LS.settings)); } catch (e) {} };
   LS.applyTheme = () => { document.documentElement.setAttribute('data-theme', LS.settings.theme === 'dark' ? 'dark' : 'light'); const m = $('meta[name="theme-color"]'); if (m) m.setAttribute('content', LS.settings.theme === 'dark' ? '#000000' : '#f2f2f7'); };
@@ -269,11 +287,11 @@
 
   /* ---------- App registry + router ---------- */
   LS.apps = {};
-  LS.homeOrder = ['settings', 'games', 'buddy', 'camera', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light', 'piano', 'calendar', 'dice'];
-  // Optional apps/games that are hidden until added in Developer Tools.
+  LS.homeOrder = ['settings', 'games', 'buddy', 'shell', 'camera', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light', 'piano', 'calendar', 'dice'];
+  // Optional apps/games: shown by default, can be turned off in Developer Tools > Apps & Games.
   LS.EXTRAS = { apps: ['piano', 'calendar', 'dice'], games: ['breakout', 'mines', 'connect4', 'skyhop'] };
-  LS.hasExtra = (id) => (LS.settings.extras || []).includes(id);
-  LS.setExtra = (id, on) => { const x = (LS.settings.extras || []).filter((k) => k !== id); if (on) x.push(id); LS.settings.extras = x; LS.saveSettings(); };
+  LS.hasExtra = (id) => !(LS.settings.extrasOff || []).includes(id);
+  LS.setExtra = (id, on) => { const x = (LS.settings.extrasOff || []).filter((k) => k !== id); if (!on) x.push(id); LS.settings.extrasOff = x; LS.saveSettings(); };
   // Can this app be opened from the home screen / Buddy right now?
   LS.appAvailable = (id) => { const a = LS.apps[id]; if (!a || a.hiddenApp) return false; if (a.extra && !LS.hasExtra(id)) return false; return id === 'settings' || !(LS.settings.hidden || []).includes(id); };
   LS.onRoute = [];
@@ -363,6 +381,8 @@
   };
 
   LS.fmtDur = (ms) => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
-  LS.VERSION = '1.1.0';
+  LS.VERSION = '1.2.0';
+  LS.BUILD_DATE = '2026-09-24';
+  LS.OS_NAME = 'ShellOS';
   LS.fmtDate = (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 })();

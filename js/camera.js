@@ -10,10 +10,10 @@
   }
   function permMsg(err) {
     const n = err && err.name;
-    if (n === 'NotAllowedError' || n === 'SecurityError') return ['📷', 'Camera access is off', 'LockShell needs permission to use the camera. On iPhone: Settings > Safari > Camera > Allow (or tap "aA" in Safari > Website Settings). Then try again.'];
+    if (n === 'NotAllowedError' || n === 'SecurityError') return ['📷', 'Camera access is off', 'ShellOS needs permission to use the camera. On iPhone: Settings > Safari > Camera > Allow (or tap "aA" in Safari > Website Settings). Then try again.'];
     if (n === 'NotFoundError' || n === 'OverconstrainedError') return ['🔍', 'No camera found', 'This device does not seem to have a camera available.'];
     if (n === 'NotReadableError') return ['⏳', 'Camera is busy', 'Another app may be using the camera. Close it and try again.'];
-    if (!navigator.mediaDevices) return ['🔒', 'Camera unavailable', 'The camera only works when LockShell is opened over HTTPS (or installed to the Home Screen).'];
+    if (!navigator.mediaDevices) return ['🔒', 'Camera unavailable', 'The camera only works when ShellOS is opened over HTTPS (or installed to the Home Screen).'];
     return ['⚠️', 'Camera could not start', 'Please try again.'];
   }
 

@@ -49,6 +49,7 @@
       fails = 0; $('#lockGlyph').innerHTML = icon('unlock');
       LS.unlock();
       firstUnlockMic();
+      if (LS.voice) LS.voice.afterFirstUnlock();
       entry = ''; setTimeout(LS.resetLockEntry, 400);
       return;
     }
@@ -150,7 +151,7 @@
   // No way out to other sites: block external link navigation and window.open.
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('a[href]');
-    if (a && new URL(a.href, location.href).origin !== location.origin) { e.preventDefault(); LS.toast('Links are turned off in LockShell'); }
+    if (a && new URL(a.href, location.href).origin !== location.origin) { e.preventDefault(); LS.toast('Links are turned off in ShellOS'); }
   }, true);
   try { window.open = function () { return null; }; } catch (e) {}
 

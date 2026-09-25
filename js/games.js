@@ -16,9 +16,11 @@
     memory: { name: 'Memory', emoji: '🧠', desc: 'Match the pairs', bg: 'linear-gradient(135deg,#ec4899,#be185d)', run: memory }
   };
 
-  // Other files can add games (extra ones only show once added in Developer Tools).
+  // Other files can add games (extra ones can be turned off in Developer Tools).
   LS.addGame = (key, def) => { GAMES[key] = def; };
   LS.gameAvailable = (key) => !!GAMES[key] && (!GAMES[key].extra || LS.hasExtra(key));
+  LS.gameList = () => Object.keys(GAMES).filter(LS.gameAvailable).map((k) => ({ key: k, name: GAMES[k].name }));
+  LS.allGames = () => Object.keys(GAMES).map((k) => ({ key: k, name: GAMES[k].name, extra: !!GAMES[k].extra }));
   LS.gameBest = best; LS.gameBestLow = bestLow;
   LS.gameCleanup = (fn) => cleanup.push(fn);
 
