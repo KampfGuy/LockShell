@@ -228,7 +228,7 @@ with sync_playwright() as p:
     # ================= About =================
     open_app('settings'); page.click('.set-row:has-text("About")'); page.wait_for_timeout(300)
     about = page.inner_text('#appBody')
-    check(all(k in about for k in ['ShellOS', 'Version 1.3.0', 'Apps (19)', 'Games (10)', 'YouTube safety', 'youtube-nocookie.com', 'Screen Time in ShellOS', 'Buddy', 'Safety', 'Shell filter', 'Privacy', 'Open-Meteo', 'Wikipedia', 'iPhone limits', 'volume buttons', 'Guided Access', 'Limit Adult Websites', 'Kampf Kaiser']), 'About has version, apps, games, Buddy, safety, privacy, limits, Screen Time, credits')
+    check(all(k in about for k in ['ShellOS', 'Version 1.4.0', 'Apps (19)', 'Games (12)', 'YouTube safety', 'youtube-nocookie.com', 'Screen Time in ShellOS', 'Buddy', 'Safety', 'Shell filter', 'Privacy', 'Open-Meteo', 'Wikipedia', 'iPhone limits', 'volume buttons', 'Guided Access', 'Limit Adult Websites', 'Kampf Kaiser']), 'About has version, apps, games, Buddy, safety, privacy, limits, Screen Time, credits')
     check('19845' not in about and '19845' not in page.content(), 'About never shows the developer code')
     shot('about.png'); back()
     page.click('.set-row:has-text("Shake for Buddy")'); page.wait_for_timeout(300); shot('extra/settings-shake.png'); back(); back()
@@ -347,7 +347,7 @@ with sync_playwright() as p:
     page.click('.seg button:has-text("Coin")'); page.click('.big-roll'); page.wait_for_timeout(1500)
     check(page.inner_text('.dice-total') in ('Heads!', 'Tails!'), 'coin flipped'); shot('extra/coin.png'); back()
     open_app('games'); page.wait_for_timeout(200)
-    check(page.locator('.game-card').count() == 10, '10 games in Games (new ones on by default)'); shot('games-new.png')
+    check(page.locator('.game-card').count() == 12, '12 games in Games (new ones on by default)'); shot('games-new.png')
     page.click('.game-card:has-text("Breakout")'); page.wait_for_timeout(300)
     page.click('canvas.board2'); page.wait_for_timeout(1200); shot('breakout.png'); back()
     page.click('.game-card:has-text("Minesweeper")'); page.wait_for_timeout(300)
@@ -576,6 +576,208 @@ with sync_playwright() as p:
     page.evaluate('localStorage.setItem("lockshell.screentime.v1", JSON.stringify({ day: "2000-01-01", usedMs: 99999999, bonusMs: 0 })); LS.screenTime._reload()')
     check(page.evaluate('LS.screenTime.usedMs()') < 60000, 'screen time resets on a new day')
     back()
+
+    # ================= Best scores reset every time ShellOS is unlocked after a lock =================
+    seed_best = 'localStorage.setItem("lockshell.best.snake", "12"); localStorage.setItem("lockshell.best.moonrocket", "50000"); localStorage.setItem("lockshell.best.quiz-space", "7"); localStorage.setItem("lockshell.best.ws-8", "40"); localStorage.setItem("lockshell.best.simon", "9")'
+    best_keys = 'Object.keys(localStorage).filter(k => k.startsWith("lockshell.best."))'
+    page.evaluate(seed_best)
+    open_app('games')
+    hub = page.inner_text('#appBody')
+    check('Best: 12' in hub and 'Best: 9' in hub and 'Best: 50,000 km' in hub, 'Games shows saved best scores before locking')
+    back(); page.click('#homeLock'); page.wait_for_timeout(400)
+    check(len(page.evaluate(best_keys)) == 5, 'locking alone does not clear best scores')
+    page.keyboard.type('2468'); page.wait_for_timeout(900)
+    check(visible('#home') and page.evaluate(best_keys) == [], 'unlocking after a lock resets every game\'s best score (all lockshell.best.* keys)')
+    open_app('games'); hub = page.inner_text('#appBody')
+    check('Best: 12' not in hub and 'Best: 9' not in hub and 'No flights yet' in hub and 'Best: 0' in hub, 'Best labels show 0 right after unlock')
+    back(); open_app('quiz')
+    check('Best 7/10' not in page.inner_text('#appBody') and 'Best 0/10' in page.inner_text('#appBody'), 'Quiz bests reset too')
+    back()
+    # the reset list refreshes an open Games list right away
+    page.evaluate(seed_best); open_app('games'); page.evaluate('LS.resetBestScores()'); page.wait_for_timeout(300)
+    check('Best: 12' not in page.inner_text('#appBody') and page.inner_text('#appTitle') == 'Games', 'an open Games list refreshes as soon as bests are reset')
+    back()
+    # Developer toggle (default ON) can keep best scores
+    check(page.evaluate('LS.settings.resetBestOnUnlock') is True, '"Reset best scores when locked" is on by default')
+    open_app('settings'); page.click('.set-row:has-text("Developer")'); page.wait_for_timeout(300); dev_code('19845')
+    tg = page.locator('button[aria-label="Reset best scores when locked"]')
+    check(tg.count() == 1 and tg.get_attribute('aria-checked') == 'true', 'Developer Tools has "Reset best scores when locked" (on)')
+    tg.click(); page.wait_for_timeout(200)
+    page.click('.dev-exit'); page.wait_for_timeout(300); back()
+    page.evaluate(seed_best); page.click('#homeLock'); page.wait_for_timeout(400); page.keyboard.type('2468'); page.wait_for_timeout(900)
+    check(visible('#home') and len(page.evaluate(best_keys)) == 5, 'with the toggle off, best scores are kept after unlock')
+    open_app('settings'); page.click('.set-row:has-text("Developer")'); page.wait_for_timeout(300); dev_code('19845')
+    page.click('button[aria-label="Reset best scores when locked"]'); page.wait_for_timeout(200)
+    page.click('.set-row:has-text("Reset all best scores now") button'); page.wait_for_timeout(200)
+    check(page.evaluate(best_keys) == [] and page.evaluate('LS.settings.resetBestOnUnlock') is True, 'toggle back on; "Reset all best scores now" clears them')
+    page.click('.dev-exit'); page.wait_for_timeout(300); back()
+    # the Parent gate (time-up screen) does not reset best scores
+    page.evaluate(seed_best); page.click('#homeLock'); page.wait_for_timeout(300)
+    page.evaluate('LS.settings.screen.limitMin = 30; LS.saveSettings(); LS.screenTime._setUsed(31 * 60000)'); page.wait_for_timeout(1300)
+    page.click('.tu-parent'); page.wait_for_timeout(300); dev_code('19845')
+    check(page.inner_text('#appTitle') == 'Developer Tools' and len(page.evaluate(best_keys)) == 5, 'opening Developer Tools from the Parent gate does not reset best scores')
+    page.evaluate('LS.settings.screen.limitMin = 0; LS.saveSettings(); LS.screenTime.resetToday && LS.screenTime.resetToday()')
+    page.click('.dev-exit'); page.wait_for_timeout(400); back()
+    page.evaluate('localStorage.removeItem("lockshell.lockedAfterUse"); ' + best_keys + '.forEach(k => localStorage.removeItem(k))')
+
+    # ================= Moon Rocket =================
+    cdp = ctx.new_cdp_session(page)
+    def touch(kind, pts):
+        cdp.send('Input.dispatchTouchEvent', {'type': kind, 'touchPoints': [{'x': x, 'y': y, 'id': i} for i, (x, y) in enumerate(pts)]})
+    def touch_drag(x0, y0, x1, y1, steps=8, hold_end=False):
+        touch('touchStart', [(x0, y0)])
+        for i in range(1, steps + 1):
+            touch('touchMove', [(x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps)]); page.wait_for_timeout(30)
+        if not hold_end: touch('touchEnd', [])
+    open_app('games')
+    page.evaluate('document.getElementById("appBody").scrollTop = 99999'); page.wait_for_timeout(300)
+    check(page.locator('.game-card:has-text("Moon Rocket")').count() == 1 and page.locator('.game-card:has-text("Block World")').count() == 1, 'Moon Rocket and Block World are in Games')
+    shot('games-grid.png')
+    page.click('.game-card:has-text("Moon Rocket")'); page.wait_for_timeout(900)
+    G = 'document.querySelector("canvas.mr-canvas")._game'
+    check(page.inner_text('#appTitle') == 'Moon Rocket' and page.evaluate(G + '.state') == 'ready', 'Moon Rocket opens on the launch pad')
+    spr = page.evaluate('fetch("img/saturn-v.png").then(r => r.ok && r.headers.get("content-type"))')
+    check(spr and 'png' in spr, 'Saturn V sprite (rendered from the Blender model) is served: ' + str(spr))
+    shot('moonrocket-start.png')
+    box = page.locator('canvas.mr-canvas').bounding_box()
+    r0 = page.evaluate(G + '.rocket()')
+    sx, sy = box['x'] + r0['x'] * box['width'] / page.evaluate('document.querySelector("canvas.mr-canvas").clientWidth'), box['y'] + r0['y'] + r0['h'] + 20
+    touch_drag(sx, sy, sx + 110, sy - 120, steps=10, hold_end=True); page.wait_for_timeout(700)
+    r1 = page.evaluate(G + '.rocket()')
+    check(page.evaluate(G + '.state') == 'play' and r1['x'] > r0['x'] + 60, 'touch drag launches the rocket and it follows the finger (x %.0f -> %.0f)' % (r0['x'], r1['x']))
+    touch('touchEnd', []); page.wait_for_timeout(200)
+    check(page.evaluate(G + '.dist') > 50 and page.inner_text('.score-row .score >> nth=0') != 'ALTITUDE\n0 km', 'altitude climbs while flying: ' + page.inner_text('.score-row .score >> nth=0').replace('\n', ' '))
+    # collision: an asteroid right on the rocket = gentle crash
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); g.setDist(g.TOTAL * 0.55); const r = g.rocket(); g.spawn("asteroid", r.x, r.y + r.h / 2, { r: 20 }); })()'); page.wait_for_timeout(300)
+    check(page.evaluate(G + '.state') == 'crash' and 'Bonk' in page.inner_text('.game-msg'), 'hitting an asteroid crashes gently ("Bonk!")')
+    check(page.evaluate('LS.gameBest("moonrocket")') >= 200000, 'best distance saved on crash: %s km' % page.evaluate('LS.gameBest("moonrocket")'))
+    page.wait_for_timeout(700); page.click('canvas.mr-canvas'); page.wait_for_timeout(300)
+    check(page.evaluate(G + '.state') == 'ready' and abs(page.evaluate(G + '.dist') - 0.5 * page.evaluate(G + '.TOTAL')) < 1, 'tap to retry from the last checkpoint (Space!)')
+    # a plane low down also counts
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); g.setDist(100); })()')
+    page.click('canvas.mr-canvas'); page.wait_for_timeout(200)
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); const r = g.rocket(); g.spawn("plane", r.x + 150, r.y + 20, { dir: -1 }); })()'); page.wait_for_timeout(200)
+    check(page.evaluate(G + '.state') == 'play', 'a plane off to the side does not hit')
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); const r = g.rocket(); g.spawn("plane", r.x, r.y + r.h * 0.4, { dir: 1 }); })()'); page.wait_for_timeout(250)
+    check(page.evaluate(G + '.state') == 'crash' and 'airplane' in page.inner_text('.game-msg'), 'hitting an airplane crashes')
+    # mid-flight in space with an asteroid nearby
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); g.setDist(g.TOTAL * 0.64); })()'); page.wait_for_timeout(700); page.click('canvas.mr-canvas'); page.wait_for_timeout(100)
+    touch_drag(sx, box['y'] + box['height'] * 0.8, sx - 30, box['y'] + box['height'] * 0.72, steps=4, hold_end=True); page.wait_for_timeout(300)
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); g.setDist(g.TOTAL * 0.64); })()'); page.wait_for_timeout(900)
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); const r = g.rocket(); g.spawn("asteroid", r.x + 85, r.y - 30, { r: 24 }); g.spawn("asteroid", r.x - 110, r.y - 150, { r: 16 }); })()'); page.wait_for_timeout(250)
+    check(page.evaluate(G + '.state') == 'play' and page.evaluate(G + '.rocket().keep') < 0.5, 'in space the rocket has dropped two stages (S-IC and S-II)')
+    shot('moonrocket-flight.png')
+    touch('touchEnd', [])
+    # pause when hidden
+    page.evaluate('Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange"))'); page.wait_for_timeout(200)
+    d1 = page.evaluate(G + '.dist'); page.wait_for_timeout(600)
+    check(page.evaluate(G + '.paused') and page.evaluate(G + '.dist') == d1, 'Moon Rocket pauses while ShellOS is hidden')
+    page.evaluate('delete document.hidden; document.dispatchEvent(new Event("visibilitychange"))'); page.wait_for_timeout(300)
+    page.click('canvas.mr-canvas'); page.wait_for_timeout(200)
+    check(not page.evaluate(G + '.paused'), 'tap to keep flying after a pause')
+    # win: reach the Moon
+    page.evaluate('(() => { const g = ' + G + '; g.clear(); g.setDist(g.TOTAL - 15); })()')
+    try: page.wait_for_function('() => ' + G + '.state === "win"', timeout=8000)
+    except Exception: pass
+    check(page.evaluate(G + '.state') == 'win' and 'Moon' in page.inner_text('.game-msg'), 'reaching the Moon wins with a celebration')
+    rw, mb = page.evaluate(G + '.rocket()'), page.evaluate(G + '.moonBottom()')
+    check(page.evaluate(G + '.banner') is None, 'no stage banner ("Almost there") over the win screen')
+    check(mb - 5 <= rw['y'] <= mb, 'at the win the rocket nose touches the Moon (nose %.1f, Moon bottom %.1f)' % (rw['y'], mb))
+    check(page.evaluate('LS.gameBest("moonrocket")') == 384400 and 'Moon!' in page.inner_text('.score-row'), 'best = the Moon (384,400 km)')
+    page.wait_for_timeout(700); shot('moonrocket-win.png')
+    back()
+    check('reached the Moon' in page.inner_text('#appBody'), 'Games card shows the Moon Rocket record')
+
+    # ================= Block World =================
+    page.evaluate('localStorage.removeItem("lockshell.blockworld.v1")')
+    page.click('.game-card:has-text("Block World")'); page.wait_for_timeout(1000)
+    BW = 'document.querySelector("canvas.bw-canvas")._bw'
+    check(page.inner_text('#appTitle') == 'Block World' and page.locator('canvas.bw-canvas').count() == 1, 'Block World opens')
+    kinds = page.evaluate('(() => { const w = ' + BW + ', s = new Set(); for (let y = 0; y < w.H; y++) for (let x = 0; x < w.W; x++) s.add(w.NAMES[w.get(x, y)]); return [...s]; })()')
+    check(all(k in kinds for k in ['Grass', 'Dirt', 'Stone', 'Wood', 'Leaves', 'Sand', 'Water', 'Gold ore', 'Bedrock']), 'generated world has grass, dirt, stone, trees, leaves, sand, water and ore: ' + ', '.join(sorted(kinds)))
+    check(page.locator('.bw-slot').count() >= 10 and page.locator('.bw-mode').count() == 3 and page.locator('button[aria-label="Jump"]').count() == 1, 'hotbar, Move/Dig/Build and left/right/jump buttons')
+    bb = page.locator('button[aria-label="Jump"]').bounding_box()
+    check(bb['height'] >= 50 and bb['width'] >= 50, 'big kid-size buttons (%dx%d)' % (bb['width'], bb['height']))
+    page.wait_for_timeout(800)
+    pl = page.evaluate(BW + '.player()')
+    check(pl['ground'], 'explorer stands on the ground')
+    # build: tap an air tile above the explorer
+    page.click('.bw-slot[aria-label="Brick"]'); page.wait_for_timeout(100)
+    tx, ty = int(pl['x']) + 2, int(pl['y']) - 2
+    page.evaluate(BW + '.setFollow(false)')
+    while page.evaluate(BW + '.get(%d,%d)' % (tx, ty)) != 0: ty -= 1
+    c = page.evaluate(BW + '.clientOf(%d,%d)' % (tx, ty))
+    touch('touchStart', [(c['x'], c['y'])]); touch('touchEnd', []); page.wait_for_timeout(200)
+    check(page.evaluate(BW + '.get(%d,%d)' % (tx, ty)) == page.evaluate(BW + '.B.BRICK'), 'tap places the selected block (Brick)')
+    # drag to build a row of planks
+    page.click('.bw-slot[aria-label="Planks"]'); page.wait_for_timeout(100)
+    ry = ty - 2
+    for xx in range(tx - 3, tx + 3): page.evaluate(BW + '.dig(%d,%d)' % (xx, ry))
+    a, z = page.evaluate(BW + '.clientOf(%d,%d)' % (tx - 3, ry)), page.evaluate(BW + '.clientOf(%d,%d)' % (tx + 2, ry))
+    touch_drag(a['x'], a['y'], z['x'], z['y'], steps=10)
+    page.wait_for_timeout(200)
+    row = [page.evaluate(BW + '.get(%d,%d)' % (xx, ry)) for xx in range(tx - 3, tx + 3)]
+    check(all(v == page.evaluate(BW + '.B.PLANKS') for v in row), 'dragging builds a row of blocks: ' + str(row))
+    # dig mode
+    page.click('.bw-mode[aria-label="Dig"]'); page.wait_for_timeout(100)
+    c = page.evaluate(BW + '.clientOf(%d,%d)' % (tx, ty))
+    touch('touchStart', [(c['x'], c['y'])]); touch('touchEnd', []); page.wait_for_timeout(200)
+    check(page.evaluate(BW + '.get(%d,%d)' % (tx, ty)) == 0, 'Dig mode: tap digs the block')
+    check(page.evaluate(BW + '.get(0,%d)' % (page.evaluate(BW + '.H') - 1)) == page.evaluate(BW + '.B.BEDROCK') and not page.evaluate(BW + '.dig(5,%d)' % (page.evaluate(BW + '.H') - 1)), 'bedrock at the bottom cannot be dug')
+    # hold to dig in Build mode
+    page.click('.bw-mode[aria-label="Build"]'); page.wait_for_timeout(100)
+    c = page.evaluate(BW + '.clientOf(%d,%d)' % (tx, ry))
+    touch('touchStart', [(c['x'], c['y'])]); page.wait_for_timeout(650); touch('touchEnd', []); page.wait_for_timeout(150)
+    check(page.evaluate(BW + '.get(%d,%d)' % (tx, ry)) == 0, 'Build mode: hold on a block to dig it')
+    # Move mode: drag pans the view
+    page.click('.bw-mode[aria-label="Move"]'); cam0 = page.evaluate(BW + '.cam()')
+    cb = page.locator('canvas.bw-canvas').bounding_box()
+    touch_drag(cb['x'] + 250, cb['y'] + 200, cb['x'] + 90, cb['y'] + 200, steps=6); page.wait_for_timeout(150)
+    check(page.evaluate(BW + '.cam()')['x'] > cam0['x'] + 3, 'Move mode: dragging pans the world')
+    # walk and jump
+    page.click('button[aria-label="Find me"]'); p0 = page.evaluate(BW + '.player()')
+    page.dispatch_event('button[aria-label="Right"]', 'pointerdown'); page.wait_for_timeout(600); page.dispatch_event('button[aria-label="Right"]', 'pointerup')
+    p1 = page.evaluate(BW + '.player()')
+    if abs(p1['x'] - p0['x']) < 0.5:  # a tree trunk in the way: walk the other way
+        page.dispatch_event('button[aria-label="Left"]', 'pointerdown'); page.wait_for_timeout(600); page.dispatch_event('button[aria-label="Left"]', 'pointerup')
+        p1 = page.evaluate(BW + '.player()'); p1['x'] = p0['x'] + abs(p1['x'] - p0['x'])
+    check(p1['x'] > p0['x'] + 0.5, 'arrow buttons walk the explorer (x %.1f -> %.1f)' % (p0['x'], p1['x']))
+    page.wait_for_timeout(500); yb = page.evaluate(BW + '.player()')['y']
+    page.dispatch_event('button[aria-label="Jump"]', 'pointerdown'); page.wait_for_timeout(160)
+    ya = page.evaluate(BW + '.player()')['y']; page.dispatch_event('button[aria-label="Jump"]', 'pointerup')
+    check(ya < yb - 0.3, 'Jump button jumps')
+    page.wait_for_timeout(700)
+    page.click('.bw-mode[aria-label="Build"]'); page.click('.bw-slot[aria-label="Glass"]')
+    for xx in range(tx - 1, tx + 2): page.evaluate(BW + '.place(%d,%d)' % (xx, ry - 1))
+    page.wait_for_timeout(300); shot('blockworld.png')
+    # save + load
+    page.evaluate(BW + '.save()')
+    saved = page.evaluate('JSON.parse(localStorage.getItem("lockshell.blockworld.v1"))')
+    seed = page.evaluate(BW + '.seed')
+    check(saved and saved['seed'] == seed and len(saved['data']) > 100, 'world saved to localStorage (%d chars)' % len(saved['data']))
+    back(); page.click('.game-card:has-text("Block World")'); page.wait_for_timeout(800)
+    check(page.evaluate(BW + '.seed') == seed and page.evaluate(BW + '.get(%d,%d)' % (tx, ry - 1)) == page.evaluate(BW + '.B.GLASS') and page.evaluate(BW + '.get(%d,%d)' % (tx, ry)) == 0 and page.evaluate(BW + '.mode') == 'build', 'reopening loads the same world with your changes')
+    back(); back(); page.click('#homeLock'); page.wait_for_timeout(300); page.keyboard.type('2468'); page.wait_for_timeout(900)
+    open_app('games'); page.click('.game-card:has-text("Block World")'); page.wait_for_timeout(800)
+    check(page.evaluate(BW + '.get(%d,%d)' % (tx, ry - 1)) == page.evaluate(BW + '.B.GLASS'), 'the world survives lock/unlock (it is not a best score)')
+    page.click('#appActions button:has-text("New world")'); page.wait_for_timeout(300)
+    page.click('#modalSheet .btns button:has-text("New world")'); page.wait_for_timeout(500)
+    check(page.evaluate(BW + '.seed') != seed, 'New world makes a fresh world')
+    rt = page.evaluate('(() => { const C = LS.blockWorldCodec, w = C.generate(7), d = C.decode(C.encode(w.tiles)); return !!d && d.every((v, i) => v === w.tiles[i]) && C.decode("A5") === null; })()')
+    check(rt, 'world save format round-trips and rejects bad data')
+    back(); back()
+    # hide / show in Developer Tools, Buddy opens them
+    open_app('settings'); page.click('.set-row:has-text("Developer")'); page.wait_for_timeout(300); dev_code('19845')
+    page.click('button[aria-label="Include Block World"]'); page.wait_for_timeout(350)
+    page.click('.dev-exit'); page.wait_for_timeout(300); back()
+    open_app('games')
+    check(page.locator('.game-card:has-text("Block World")').count() == 0 and page.locator('.game-card').count() == 11, 'Block World can be hidden in Developer Tools')
+    back(); open_app('settings'); page.click('.set-row:has-text("Developer")'); page.wait_for_timeout(300); dev_code('19845')
+    page.click('button[aria-label="Include Block World"]'); page.wait_for_timeout(350); page.click('.dev-exit'); page.wait_for_timeout(300); back()
+    open_app('buddy'); page.fill('.composer input', 'open moon rocket'); page.click('.composer button.send'); page.wait_for_timeout(1500)
+    check(page.inner_text('#appTitle') == 'Moon Rocket', 'Buddy: "open moon rocket" opens Moon Rocket'); back(); back()
+    open_app('buddy'); page.fill('.composer input', 'play block world'); page.click('.composer button.send'); page.wait_for_timeout(1500)
+    check(page.inner_text('#appTitle') == 'Block World', 'Buddy: "play block world" opens Block World'); back(); back()
     open_app('light'); page.wait_for_timeout(200); shot('extra/light.png'); page.click('.light-done'); page.wait_for_timeout(300)
     page.click('#homeLock'); page.wait_for_timeout(400)
     check(visible('#lock'), 'lock button returns to lock screen')
@@ -613,6 +815,78 @@ with sync_playwright() as p:
     check(st3['theme'] == 'dark' and st3['idleMin'] == 5 and st3['weatherUnit'] == 'C' and st3['extrasOff'] == [], 'migration: old v2 settings kept in v4')
     check(p3.evaluate('JSON.parse(localStorage.getItem("lockshell.pin.v1")).hash') == 'f' * 64, 'migration: saved passcode untouched')
     c3.close()
+
+    # ---- First launch never resets best scores (only an unlock after a lock does) ----
+    c5 = b.new_context(viewport={'width': 390, 'height': 844})
+    c5.add_init_script('''if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("lockshell.best.snake", "33"); localStorage.setItem("lockshell.best.moonrocket", "1000");
+      localStorage.setItem("lockshell.settings.v4", JSON.stringify({ micAsked: true, motionAsked: true })); }''')
+    p5 = c5.new_page(); p5.goto(URL); p5.wait_for_timeout(700)
+    for k in '1234': p5.click(f'#lockPad button[data-k="{k}"]')
+    p5.wait_for_timeout(900)
+    check(p5.eval_on_selector('#home', 'e => e.classList.contains("active")') and p5.evaluate('localStorage.getItem("lockshell.best.snake")') == '33', 'first launch + unlock keeps best scores')
+    p5.click('#homeLock'); p5.wait_for_timeout(300)
+    for k in '1234': p5.click(f'#lockPad button[data-k="{k}"]')
+    p5.wait_for_timeout(900)
+    check(p5.evaluate('localStorage.getItem("lockshell.best.snake")') is None and p5.evaluate('localStorage.getItem("lockshell.best.moonrocket")') is None, 'then lock + unlock resets them')
+    p5.evaluate('localStorage.setItem("lockshell.best.snake", "5")'); p5.click('#homeLock'); p5.wait_for_timeout(300)
+    p5.reload(); p5.wait_for_timeout(800)   # iOS may reload the web app while it sits on the lock screen
+    for k in '1234': p5.click(f'#lockPad button[data-k="{k}"]')
+    p5.wait_for_timeout(900)
+    check(p5.evaluate('localStorage.getItem("lockshell.best.snake")') is None, 'a reload while locked still resets on the next unlock')
+    c5.close()
+
+    # ---- Voice Buddy resumes cleanly after background / lock (fake speech recognizer) ----
+    c6 = b.new_context(viewport={'width': 390, 'height': 844})
+    c6.add_init_script('''
+      window.__srs = [];
+      class FakeSR { constructor() { this.aborted = false; this.started = false; window.__srs.push(this); }
+        start() { if (this.started) throw new Error("InvalidStateError: already started"); this.started = true; setTimeout(() => this.onstart && this.onstart(), 0); }
+        stop() { this.aborted = true; this.onend && this.onend(); } abort() { this.aborted = true; } }
+      window.SpeechRecognition = FakeSR; window.webkitSpeechRecognition = FakeSR;
+      window.__hid = false;
+      Object.defineProperty(Document.prototype, "hidden", { configurable: true, get() { return window.__hid; } });
+      Object.defineProperty(Document.prototype, "visibilityState", { configurable: true, get() { return window.__hid ? "hidden" : "visible"; } });
+      if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1");
+        localStorage.setItem("lockshell.settings.v4", JSON.stringify({ wakeWord: true, micPerm: "granted", micAsked: true, motionAsked: true, shake: false })); }''')
+    p6 = c6.new_page(); errs6 = []; p6.on('pageerror', lambda e: errs6.append(str(e)))
+    p6.goto(URL); p6.wait_for_timeout(700)
+    live = lambda: p6.evaluate('__srs.filter(r => r.started && !r.aborted).length')
+    starts = lambda: p6.evaluate('LS.wake.starts')
+    check(live() == 0, 'no recognizer while locked')
+    for k in '1234': p6.click(f'#lockPad button[data-k="{k}"]')
+    p6.wait_for_timeout(1000)
+    check(live() == 1 and starts() == 1, 'unlock starts exactly one wake-word recognizer (starts=%d live=%d)' % (starts(), live()))
+    p6.wait_for_timeout(1700)   # let it age past the "just started" window
+    s0 = starts(); p6.evaluate('__hid = true; document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new Event("pagehide"))'); p6.wait_for_timeout(400)
+    check(live() == 0, 'going to the background stops the recognizer')
+    p6.evaluate('__hid = false; document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })); window.dispatchEvent(new Event("focus"))'); p6.wait_for_timeout(1000)
+    check(starts() == s0 + 1 and live() == 1, 'coming back (visibilitychange + pageshow + focus) restarts it exactly once (starts +%d, live=%d)' % (starts() - s0, live()))
+    # iOS sometimes leaves a dead recognizer (no onend) after sleep: resume replaces it with one fresh recognizer
+    p6.wait_for_timeout(1700); s0 = starts(); old = p6.evaluate('__srs.length - 1')
+    p6.evaluate('window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })); window.dispatchEvent(new Event("focus"))'); p6.wait_for_timeout(800)
+    check(starts() == s0 + 1 and live() == 1 and p6.evaluate('i => __srs[i].aborted', old), 'a stale recognizer is thrown away and exactly one new one starts')
+    # errors from iOS: aborted / no-speech just retry with backoff; not-allowed while hidden is not a real "no"
+    p6.evaluate('(() => { const r = LS.wake.rec; r.onerror({ error: "no-speech" }); r.aborted = true; r.onend(); })()'); p6.wait_for_timeout(1400)
+    check(live() == 1 and not p6.evaluate('LS.wake.failed'), 'no-speech: restarts after a short backoff')
+    p6.evaluate('(() => { const r = LS.wake.rec; r.onerror({ error: "aborted" }); r.aborted = true; r.onend(); })()'); p6.wait_for_timeout(2400)
+    check(live() == 1 and not p6.evaluate('LS.wake.failed'), 'aborted: restarts with backoff')
+    # lock, then unlock: exactly one restart
+    p6.wait_for_timeout(1700); p6.click('#homeLock'); p6.wait_for_timeout(400)
+    check(live() == 0, 'locking ShellOS stops the recognizer')
+    s0 = starts()
+    for k in '1234': p6.click(f'#lockPad button[data-k="{k}"]')
+    p6.wait_for_timeout(1200)
+    check(starts() == s0 + 1 and live() == 1, 'unlock after a lock restarts the recognizer exactly once (starts +%d)' % (starts() - s0))
+    check(p6.evaluate('LS.resumeCount') >= 3, 'resume ran for visible / pageshow / unlock (%d)' % p6.evaluate('LS.resumeCount'))
+    # Screen Time does not count while hidden, and does not double count after coming back
+    p6.evaluate('LS.settings.screen.limitMin = 120; LS.saveSettings(); LS.screenTime._setUsed(0)')
+    p6.evaluate('__hid = true; document.dispatchEvent(new Event("visibilitychange"))'); p6.wait_for_timeout(2500)
+    u1 = p6.evaluate('LS.screenTime.usedMs()')
+    p6.evaluate('__hid = false; document.dispatchEvent(new Event("visibilitychange"))'); p6.wait_for_timeout(2200)
+    u2 = p6.evaluate('LS.screenTime.usedMs()')
+    check(u1 < 1200 and 1000 <= u2 - u1 <= 3500, 'Screen Time pauses while hidden and resumes (hidden %d ms, then +%d ms)' % (u1, u2 - u1))
+    check(not errs6, 'no page errors during resume tests ' + str(errs6[:2]))
+    c6.close()
     b.close()
 srv.terminate()
 print('\nErrors:', errors if errors else 'none')

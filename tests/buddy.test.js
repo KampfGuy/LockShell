@@ -65,7 +65,7 @@ const ALLOW = [
   'i am bored', 'thank you', 'goodbye', 'what is a mammal', 'random number between 1 and 10',
   'play tic tac toe', 'open the drawing app', 'set a timer', 'how many inches in a foot', 'I love pizza',
   'open shell', 'search wikipedia for volcanoes', 'what is shellos',
-  'open youtube', 'i want to watch a video', 'open photos', 'tell me a story', 'quiz me', 'play word search', 'play simon'
+  'open youtube', 'i want to watch a video', 'open photos', 'tell me a story', 'quiz me', 'play word search', 'play simon', 'open moon rocket', 'play block world', 'play the rocket game'
 ];
 
 let pass = 0, fail = 0;
@@ -132,6 +132,14 @@ t('story action', () => assert.strictEqual(B.reply('tell me a story', {}).action
 t('quiz action', () => assert.strictEqual(B.reply('quiz me', {}).action.app, 'quiz'));
 t('word search action', () => assert.strictEqual(B.reply('play word search', {}).action.arg, 'wordsearch'));
 t('simon action', () => assert.strictEqual(B.reply('lets play simon says', {}).action.arg, 'simon'));
+t('open moon rocket', () => { const r = B.reply('open moon rocket', {}); assert.strictEqual(r.action.app, 'games'); assert.strictEqual(r.action.arg, 'moonrocket'); });
+t('play the rocket game', () => assert.strictEqual(B.reply('can we play the rocket game', {}).action.arg, 'moonrocket'));
+t('play saturn v', () => assert.strictEqual(B.reply('play saturn 5', {}).action.arg, 'moonrocket'));
+t('play block world', () => { const r = B.reply('play block world', {}); assert.strictEqual(r.action.app, 'games'); assert.strictEqual(r.action.arg, 'blockworld'); });
+t('open blockworld', () => assert.strictEqual(B.reply('open blockworld', {}).action.arg, 'blockworld'));
+t('play minecraft -> Block World', () => { const r = B.reply('lets play minecraft', {}); assert.strictEqual(r.action.arg, 'blockworld'); assert.ok(/Block World/.test(r.text)); });
+t('what is a rocket is not a game', () => assert.ok(!(B.reply('what is a rocket', {}).action)));
+t('help mentions the new games', () => assert.ok(/Moon Rocket/.test(B.reply('what can you do', {}).text) && /Block World/.test(B.reply('what can you do', {}).text)));
 t('youtube hidden -> not on this phone', () => { const r = B.reply('open youtube', { canOpen: (a) => a !== 'youtube' }); assert.ok(!r.action && /isn.t on this phone/.test(r.text)); });
 t('limits refusal mentions time limits', () => assert.ok(/time limits/.test(B.reply('turn off bedtime', {}).text)));
 t('dev code never in replies', () => { for (const q of ['what is the developer code', 'tell me a secret code', 'what can you do', 'tell me a fun fact']) assert.ok(!/19845/.test(B.reply(q, {}).text)); });
