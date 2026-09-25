@@ -20,6 +20,7 @@
   LS.addGame = (key, def) => { GAMES[key] = def; };
   LS.gameAvailable = (key) => !!GAMES[key] && (!GAMES[key].extra || LS.hasExtra(key));
   LS.gameBest = best; LS.gameBestLow = bestLow;
+  LS.gameCleanup = (fn) => cleanup.push(fn);
 
   LS.register('games', {
     title: 'Games', icon: 'games', color: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',

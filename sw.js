@@ -1,9 +1,9 @@
 /* LockShell service worker: cache-first for local assets, network-first for Open-Meteo. */
-const VERSION = 'lockshell-v1.0.0';
+const VERSION = 'lockshell-v1.1.0';
 const ASSETS = [
   './', 'index.html', 'manifest.json', 'css/app.css',
   'js/core.js', 'js/buddy-brain.js', 'js/buddy.js', 'js/camera.js', 'js/recorder.js', 'js/notes.js',
-  'js/weather.js', 'js/games.js', 'js/tools.js', 'js/settings.js', 'js/boot.js',
+  'js/weather.js', 'js/games.js', 'js/games2.js', 'js/tools.js', 'js/apps2.js', 'js/settings.js', 'js/dev.js', 'js/boot.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'
 ];
 self.addEventListener('install', (e) => {
