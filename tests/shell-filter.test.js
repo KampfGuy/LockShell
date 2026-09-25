@@ -89,6 +89,15 @@ const ALLOW = [
   });
   await t('search: explicit query blocked, no fetch', async () => { let called = false; const r = await F.search('s3x videos', { fetch: () => { called = true; return json({}); } }); assert.ok(r.blocked && !called && !r.results.length); });
 
+  // YouTube: never a Shell site; default library titles pass the filter; bad titles would be hidden
+  const Y = require('../js/yt-library.js');
+  for (const u of ['youtube.com', 'https://www.youtube.com/watch?v=0jKoOUZ1GBM', 'm.youtube.com', 'youtu.be/0jKoOUZ1GBM', 'youtube-nocookie.com/embed/0jKoOUZ1GBM', 'youtubekids.com'])
+    await t('youtube not a Shell site: ' + u, () => assert.notStrictEqual(F.classifyInput(u, F.SITES).type, 'site'));
+  await t('all default YouTube titles pass the filter', () => { for (const v of Y.VIDEOS) assert.ok(!F.checkQuery(v.title + ' ' + v.ch).blocked && !F.checkTitle(v.title).blocked, v.title); });
+  await t('bad video titles are caught', () => { for (const x of ['Hot s3xy dance', 'Real murder scene', 'How to get high fast']) assert.ok(F.checkQuery(x).blocked, x); });
+  await t('custom word hides a video title', () => assert.ok(F.checkQuery('Elmo sings zorblax', { extraWords: ['zorblax'] }).blocked));
+  await t('parseId only accepts YouTube hosts', () => { assert.strictEqual(Y.parseId('https://evil.example/watch?v=0jKoOUZ1GBM'), null); assert.strictEqual(Y.parseId('https://youtu.be/0jKoOUZ1GBM?t=5'), '0jKoOUZ1GBM'); assert.strictEqual(Y.parseId('not an id'), null); });
+
   console.log(`Shell filter tests: ${pass} passed, ${fail} failed (${BLOCK.length} blocked titles/queries, ${ALLOW.length} allowed)`);
   process.exit(fail ? 1 : 0);
 })();

@@ -15,8 +15,11 @@
   const filterOpts = () => ({ fetch: (u, o) => window.fetch(u, o), host: wikiHost(), extraWords: cfg().blockWords || [] });
   LS.shellSites = function () {
     const off = cfg().removedSites || [];
-    return F.SITES.filter((x) => !off.includes(x.host)).concat((cfg().addSites || []).map((h) => ({ host: h, url: 'https://' + h + '/', name: h.replace(/^www\./, ''), emoji: '🌐', color: '#8e8e93', custom: true })));
+    return F.SITES.filter((x) => !off.includes(x.host)).concat((cfg().addSites || []).filter((h) => !isYouTube(h)).map((h) => ({ host: h, url: 'https://' + h + '/', name: h.replace(/^www\./, ''), emoji: '🌐', color: '#8e8e93', custom: true })));
   };
+  // YouTube never opens in Shell (videos live in the YouTube app, approved videos only).
+  const isYouTube = (s) => /(^|[^a-z0-9])(youtube|youtu\.be|youtube-nocookie|ytimg)/i.test(String(s || ''));
+  LS.shellIsYouTube = isYouTube;
   // Sites the frame policy (set when ShellOS started) actually allows right now.
   const frameReady = (host) => (window.SHELL_FRAME_HOSTS || []).some((h) => h.replace(/^www\./, '') === String(host).replace(/^www\./, ''));
 
@@ -201,11 +204,13 @@
     setAddr(e.what && !F.looksLikeUrl(e.what) ? '' : (e.what || ''));
     const sh = e.category === 'selfharm';
     const net = e.category === 'error';
+    const yt = isYouTube(e.what);
     const n = el('div', { class: 'sh-blocked' },
       el('div', { class: 'big', text: net ? '📡' : '🐚' }),
       el('h3', { text: "This page isn't available on ShellOS" }),
-      el('p', { class: 'muted', text: sh ? "If you're feeling sad or thinking about hurting yourself, please talk to a trusted adult right now, or call or text 988 any time." : net ? "ShellOS couldn't check this page, so it isn't shown. Check the internet and try again." : e.category === 'restart' ? 'This website needs ShellOS to restart before it can open.' : "Let's find something else to explore!" }),
-      el('button', { class: 'primary-btn', text: 'Back', onclick: backOrHome }));
+      el('p', { class: 'muted', text: yt ? 'Videos are in the YouTube app on the Home screen. It has videos picked just for you.' : sh ? "If you're feeling sad or thinking about hurting yourself, please talk to a trusted adult right now, or call or text 988 any time." : net ? "ShellOS couldn't check this page, so it isn't shown. Check the internet and try again." : e.category === 'restart' ? 'This website needs ShellOS to restart before it can open.' : "Let's find something else to explore!" }),
+      el('div', { class: 'btns' }, el('button', { class: 'primary-btn', text: 'Back', onclick: backOrHome }),
+        yt && LS.appAvailable('youtube') ? el('button', { class: 'ghost-btn', text: '▶ Open YouTube', onclick: () => LS.openApp('youtube') }) : ''));
     ui.view.append(el('div', { class: 'center sh-center' }, n));
   }
   function backOrHome() { if (idx > 0) { idx--; render(); } else { stack = [{ kind: 'home' }]; idx = 0; render(); } }
