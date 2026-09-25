@@ -62,7 +62,9 @@
     connect4: ['Connect Four', 'Game: vs AI or 2 players', '🔴', '#1e88e5'],
     skyhop: ['Sky Hop', 'Game: tap to fly', '🐤', '#4fc3f7'],
     wordsearch: ['Word Search', 'Game: themed words, 3 sizes', '🔤', '#00c7be'],
-    simon: ['Simon', 'Game: copy the colors', '🟢', '#34c759']
+    simon: ['Simon', 'Game: copy the colors', '🟢', '#34c759'],
+    moonrocket: ['Moon Rocket', 'Game: fly the Saturn V to the Moon', '🚀', '#3a5bd9'],
+    blockworld: ['Block World', 'Game: dig and build blocks', '⛏️', '#5fbf3a']
   };
 
   /* ---------- Main page ---------- */
@@ -146,6 +148,11 @@
     });
     p.append(el('div', { class: 'set-head', id: 'devAdd', text: 'Apps & Games' }), group(...addRows),
       foot('These are on by default. Turn one off to hide it from the Home screen (apps) or the Games app (games). Buddy can only open the ones that are on.'));
+
+    p.append(head('Game Scores'), group(
+      row('Reset best scores when locked', toggle(s.resetBestOnUnlock !== false, (v) => { s.resetBestOnUnlock = v; save(); LS.toast(v ? 'Best scores reset on each unlock' : 'Best scores are kept'); }, 'Reset best scores when locked')),
+      row('Reset all best scores now', btn('Reset', () => { const n = LS.resetBestScores(); LS.toast(n ? 'Best scores reset' : 'No best scores yet'); }))),
+      foot('When this is on, every game\'s best score (and Quiz bests) goes back to 0 each time ShellOS is unlocked with the passcode after it was locked. Opening Developer Tools does not reset them.'));
 
     buildScreenTime(p);
     buildYouTube(p);

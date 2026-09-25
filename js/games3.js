@@ -133,12 +133,13 @@
     const msg = el('div', { class: 'game-msg', text: 'Watch the colors, then copy them!' });
     body.append(el('div', { class: 'game-area sim-area' }, el('div', { class: 'score-row' }, sb, bb), board, msg));
     const later = (fn, ms) => { const t = setTimeout(() => { if (alive) fn(); }, ms); timers.push(t); };
-    function audio() { if (!ac) { const A = window.AudioContext || window.webkitAudioContext; if (A) { try { ac = new A(); } catch (e) {} } } if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); return ac; }
+    function audio() { ac = LS.audioCtx ? LS.audioCtx() : null; return ac; } // shared context; follows Settings > Game Sounds
     function tone(f, ms, type) {
+      const lvl = LS.soundLevel ? LS.soundLevel() : 1; if (!lvl) return;
       const a = audio(); if (!a) return;
       try {
         const o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine'; o.frequency.value = f;
-        const t = a.currentTime; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+        const t = a.currentTime; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25 * lvl, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
         o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + ms / 1000 + 0.05);
       } catch (e) {}
     }
@@ -164,7 +165,7 @@
       pos++;
       if (pos === seq.length) { sv.textContent = seq.length; busy = true; msg.textContent = seq.length % 5 === 0 ? 'Wow, ' + seq.length + ' in a row! 🌟' : 'Nice! ✨'; later(nextRound, 700); }
     }
-    LS.gameCleanup(() => { alive = false; timers.forEach(clearTimeout); try { if (ac) ac.close(); } catch (e) {} });
+    LS.gameCleanup(() => { alive = false; timers.forEach(clearTimeout); }); // the shared AudioContext stays open
   }
 
   LS.addGame('wordsearch', { name: 'Word Search', emoji: '🔤', desc: 'Find hidden words', bg: 'linear-gradient(135deg,#00c7be,#007aff)', run: wordsearch, extra: true, hs: () => { const b = LS.gameBestLow('ws-8'); return b ? 'Small best: ' + b + 's' : 'No best yet'; } });

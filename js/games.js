@@ -22,6 +22,8 @@
   LS.gameList = () => Object.keys(GAMES).filter(LS.gameAvailable).map((k) => ({ key: k, name: GAMES[k].name }));
   LS.allGames = () => Object.keys(GAMES).map((k) => ({ key: k, name: GAMES[k].name, extra: !!GAMES[k].extra }));
   LS.gameBest = best; LS.gameBestLow = bestLow;
+  // After the best scores are reset (unlock after a lock), redraw any open list that shows them.
+  LS.onBestReset.push(() => { const c = LS.current(); if (c && (c.id === 'games' || c.id === 'quiz')) LS.openApp(c.id); });
   LS.gameCleanup = (fn) => cleanup.push(fn);
 
   LS.register('games', {

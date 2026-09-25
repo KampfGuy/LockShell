@@ -92,7 +92,7 @@
   const DEFAULTS = {
     theme: 'light', idleMin: 2, hidden: [], weatherUnit: 'F',
     buddy: { speak: true, voiceURI: '', rate: 1, pitch: 1, style: 'friendly' },
-    wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null, manualPlace: false, extrasOff: [],
+    resetBestOnUnlock: true, gameSound: true, gameVolume: 0.8, wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null, manualPlace: false, extrasOff: [],
     shake: true, shakeSens: 'med', motionPerm: 'unknown',
     shell: { wiki: 'simple', images: false, addSites: [], removedSites: [], blockWords: [] },
     yt: { limitMin: 60, added: [], removed: [] },
@@ -301,7 +301,7 @@
   LS.apps = {};
   LS.homeOrder = ['settings', 'games', 'buddy', 'shell', 'youtube', 'camera', 'photos', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light', 'stories', 'quiz', 'piano', 'calendar', 'dice'];
   // Optional apps/games: shown by default, can be turned off in Developer Tools > Apps & Games.
-  LS.EXTRAS = { apps: ['youtube', 'photos', 'stories', 'quiz', 'piano', 'calendar', 'dice'], games: ['breakout', 'mines', 'connect4', 'skyhop', 'wordsearch', 'simon'] };
+  LS.EXTRAS = { apps: ['youtube', 'photos', 'stories', 'quiz', 'piano', 'calendar', 'dice'], games: ['breakout', 'mines', 'connect4', 'skyhop', 'wordsearch', 'simon', 'moonrocket', 'blockworld'] };
   LS.hasExtra = (id) => !(LS.settings.extrasOff || []).includes(id);
   LS.setExtra = (id, on) => { const x = (LS.settings.extrasOff || []).filter((k) => k !== id); if (!on) x.push(id); LS.settings.extrasOff = x; LS.saveSettings(); };
   // Can this app be opened from the home screen / Buddy right now?
@@ -337,8 +337,50 @@
     $('#appBody').innerHTML = ''; $('#appBody').removeAttribute('style');
     if (!silent) { show('home'); LS.renderHome && LS.renderHome(); route(); }
   };
+  /* ---------- Game sound: one shared AudioContext that follows Settings > Game Sounds / Game Volume ---------- */
+  let actx = null;
+  LS.soundLevel = () => (LS.settings.gameSound === false ? 0 : Math.max(0, Math.min(1, Number(LS.settings.gameVolume == null ? 0.8 : LS.settings.gameVolume))));
+  LS.audioCtx = function () {
+    if (!actx) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { actx = new A(); } catch (e) { return null; } }
+    if (actx.state === 'suspended' || actx.state === 'interrupted') { try { actx.resume().catch(() => {}); } catch (e) {} }
+    return actx;
+  };
+  // A short tone: freq Hz for dur seconds (optionally sliding to `to` Hz). Silent when game sounds are off or hidden.
+  LS.tone = function (freq, dur, opts) {
+    const o = opts || {}, lvl = LS.soundLevel() * (o.vol == null ? 0.25 : o.vol);
+    if (!lvl || document.hidden) return;
+    const ac = LS.audioCtx(); if (!ac) return;
+    try {
+      const t = ac.currentTime + (o.delay || 0), osc = ac.createOscillator(), gn = ac.createGain();
+      osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(freq, t);
+      if (o.to) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.to), t + dur);
+      gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(lvl, t + 0.015); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(gn); gn.connect(ac.destination); osc.start(t); osc.stop(t + dur + 0.05);
+    } catch (e) {}
+  };
+  LS.audioSuspend = () => { if (actx && actx.state === 'running') { try { actx.suspend(); } catch (e) {} } };
+  LS.audioResume = () => { if (actx) LS.audioCtx(); };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) LS.audioSuspend(); });
+
+  /* ---------- Best scores: reset every time ShellOS is unlocked after a lock ---------- */
+  // Every game keeps its best score under 'lockshell.best.<key>' (see games.js), so one function clears them all,
+  // including games added later. Called from LS.unlock() only when ShellOS was locked after being used (goLock sets a
+  // flag), so the first launch and the Parent/developer gate never reset. Developer Tools can turn this off.
+  LS.BEST_PREFIX = 'lockshell.best.';
+  const LOCKED_FLAG = 'lockshell.lockedAfterUse';
+  LS.onBestReset = [];
+  LS.resetBestScores = function () {
+    let n = 0;
+    try {
+      const keys = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(LS.BEST_PREFIX) === 0) keys.push(k); }
+      keys.forEach((k) => { localStorage.removeItem(k); n++; });
+    } catch (e) {}
+    LS.onBestReset.forEach((f) => { try { f(); } catch (e) {} });
+    return n;
+  };
   LS.onLock = [];
   LS.goLock = function () {
+    try { localStorage.setItem(LOCKED_FLAG, '1'); } catch (e) {}
     LS.closeApp(true);
     LS.closeModal();
     if (!$('#pinOverlay').hidden) { $('#pinOverlay').hidden = true; $('#pinOverlay').innerHTML = ''; }
@@ -350,6 +392,8 @@
   LS.isLocked = () => $('#lock').classList.contains('active');
   LS.unlock = function () {
     if (LS.timeBlocked && LS.timeBlocked()) { LS.showTimeUp && LS.showTimeUp(); return; } // Screen Time: the passcode can't open ShellOS
+    let wasLocked = false; try { wasLocked = localStorage.getItem(LOCKED_FLAG) === '1'; localStorage.removeItem(LOCKED_FLAG); } catch (e) {}
+    if (wasLocked && LS.settings.resetBestOnUnlock !== false) LS.resetBestScores();
     show('home');
     LS.renderHome && LS.renderHome();
     LS.onUnlock.forEach((f) => { try { f(); } catch (e) {} });
@@ -394,8 +438,8 @@
   };
 
   LS.fmtDur = (ms) => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
-  LS.VERSION = '1.3.0';
-  LS.BUILD_DATE = '2026-09-24';
+  LS.VERSION = '1.4.0';
+  LS.BUILD_DATE = '2026-09-25';
   LS.OS_NAME = 'ShellOS';
   LS.fmtDate = (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 })();
