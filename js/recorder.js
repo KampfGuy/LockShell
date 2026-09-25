@@ -22,12 +22,12 @@
     const n = err && err.name;
     if (n === 'NotAllowedError' || n === 'SecurityError') return 'Microphone access is off. On iPhone: Settings > Safari > Microphone > Allow, then try again.';
     if (n === 'NotFoundError') return 'No microphone was found on this device.';
-    if (!navigator.mediaDevices || !window.MediaRecorder) return 'Recording is not supported here. Update iOS / your browser, and open LockShell over HTTPS.';
+    if (!navigator.mediaDevices || !window.MediaRecorder) return 'Recording is not supported here. Update iOS or your browser, and open LockShell over HTTPS.';
     return 'The microphone could not start. Please try again.';
   }
 
   LS.register('recorder', {
-    title: 'Voice Memos', icon: 'mic', color: 'linear-gradient(135deg,#ef4444,#b91c1c)',
+    title: 'Voice Recorder', icon: 'mic', color: 'linear-gradient(135deg,#ef4444,#b91c1c)',
     open(body) {
       body.classList.add('scroll');
       const time = el('div', { class: 'rec-time', text: '00:00' });
@@ -35,7 +35,7 @@
       const btn = el('button', { class: 'rec-btn', 'aria-label': 'Record' }, el('i'));
       const list = el('div', { class: 'list' });
       body.append(el('div', { class: 'rec-top' }, time, state, btn), el('div', { class: 'pad' }, el('div', { class: 'section-title', text: 'Recordings' }), list));
-      LS.idleBusy = () => !!(rec && rec.state === 'recording');
+      
 
       async function renderList() {
         urls.forEach((u) => URL.revokeObjectURL(u)); urls = [];
@@ -55,7 +55,7 @@
             player.play().catch(() => LS.toast('Cannot play this recording on this device'));
           };
           const del = el('button', { class: 'icon-btn', 'aria-label': 'Delete', html: icon('trash'), onclick: async () => {
-            if (await LS.requirePin('PIN required to delete recordings')) { await LS.db.del('recordings', r.id); LS.toast('Deleted'); renderList(); }
+            if (await LS.requirePin('Passcode needed to delete recordings')) { await LS.db.del('recordings', r.id); LS.toast('Deleted'); renderList(); }
           } });
           list.append(el('div', { class: 'item' }, play, el('div', { class: 'meta' }, el('b', { text: r.name }), el('small', { text: LS.fmtDur(r.dur) + ' · ' + LS.fmtDate(r.created) })), del));
         });
@@ -83,17 +83,17 @@
           rec = null; renderList();
         };
         rec.start(1000);
-        btn.classList.add('on'); state.textContent = 'Recording…';
+        btn.classList.add('on'); state.textContent = 'Recording…'; LS.busy.add('rec');
         timer = setInterval(() => { time.textContent = LS.fmtDur(Date.now() - t0); }, 250);
       }
       function stopRec() {
-        clearInterval(timer); timer = null;
+        clearInterval(timer); timer = null; LS.busy.delete('rec');
         if (rec && rec.state !== 'inactive') rec.stop();
         btn.classList.remove('on'); state.textContent = 'Tap to record'; time.textContent = '00:00';
       }
       btn.onclick = () => { if (rec && rec.state === 'recording') stopRec(); else startRec(); };
       renderList();
     },
-    close() { LS.idleBusy = () => false; cleanup(); }
+    close() { LS.busy.delete('rec'); cleanup(); }
   });
 })();

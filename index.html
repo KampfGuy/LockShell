@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>LockShell</title>
-<meta name="description" content="LockShell: a kiosk-style lock screen with camera, recorder, notes, Buddy, weather, games and tools.">
-<meta name="theme-color" content="#f2f2f7">
+<meta name="description" content="LockShell: a kiosk-style lock screen and home screen of safe apps for iPhone.">
+<meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21,7 +21,7 @@
 <div id="root">
   <!-- LOCK SCREEN -->
   <section id="lock" class="screen active" aria-label="Lock screen">
-    <div class="statusbar"><span class="sb-time"></span><span class="sb-right"><span class="sb-mic" hidden title="Listening for Buddy"></span><span class="sb-batt" hidden></span></span></div>
+    <div class="statusbar"><span class="sb-time"></span><span class="sb-right"><span class="sb-mic" hidden title="Listening for Buddy">Buddy</span><span class="sb-batt" hidden></span></span></div>
     <div class="lock-clock">
       <div class="lock-glyph" id="lockGlyph"></div>
       <div class="clock-date" id="clockDate"></div>
@@ -36,7 +36,7 @@
 
   <!-- HOME SCREEN -->
   <section id="home" class="screen" aria-label="Home screen">
-    <div class="statusbar"><span class="sb-time"></span><span class="sb-right"><span class="sb-mic" hidden title="Listening for Buddy"></span><span class="sb-batt" hidden></span></span></div>
+    <div class="statusbar"><span class="sb-time"></span><span class="sb-right"><span class="sb-mic" hidden title="Listening for Buddy">Buddy</span><span class="sb-batt" hidden></span></span></div>
     <div class="home-head">
       <div>
         <div class="home-date" id="homeDate"></div>
@@ -45,7 +45,7 @@
       <button class="lock-btn" id="homeLock" aria-label="Lock"></button>
     </div>
     <div class="tiles" id="tiles"></div>
-    <div class="dock-hint" id="dockHint">Tap the lock to hand the phone back safely</div>
+    <div class="dock-hint" id="dockHint">Tap 🔒 to lock before handing the phone back</div>
   </section>
 
   <!-- APP SCREEN -->
@@ -65,7 +65,6 @@
 <div id="flash"></div>
 
 <script src="js/core.js"></script>
-<script src="js/safety.js"></script>
 <script src="js/buddy-brain.js"></script>
 <script src="js/buddy.js"></script>
 <script src="js/camera.js"></script>

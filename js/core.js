@@ -58,8 +58,8 @@
   const SKEY = 'lockshell.settings.v2';
   const DEFAULTS = {
     theme: 'light', idleMin: 2, hidden: [], weatherUnit: 'F',
-    buddy: { speak: false, voiceURI: '', rate: 1, pitch: 1, style: 'friendly' },
-    wakeWord: false, lastWeather: null, lastCity: ''
+    buddy: { speak: true, voiceURI: '', rate: 1, pitch: 1, style: 'friendly' },
+    wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null
   };
   LS.settings = JSON.parse(JSON.stringify(DEFAULTS));
   try {
@@ -71,7 +71,7 @@
   LS.applyTheme = () => { document.documentElement.setAttribute('data-theme', LS.settings.theme === 'dark' ? 'dark' : 'light'); const m = $('meta[name="theme-color"]'); if (m) m.setAttribute('content', LS.settings.theme === 'dark' ? '#000000' : '#f2f2f7'); };
 
   /* ---------- IndexedDB ---------- */
-  const DBN = 'lockshell', DBV = 1, STORES = ['photos', 'recordings', 'notes'];
+  const DBN = 'lockshell', DBV = 2, STORES = ['photos', 'recordings', 'notes', 'drawings'];
   let dbp = null;
   function db() {
     if (dbp) return dbp;
@@ -247,10 +247,13 @@
     });
   };
   LS.requirePin = (why) => LS.pinPad({ mode: 'verify', title: 'Enter passcode', sub: why || '' });
+  LS.onUnlock = [];
 
   /* ---------- App registry + router ---------- */
   LS.apps = {};
-  LS.homeOrder = ['buddy', 'camera', 'recorder', 'notes', 'weather', 'games', 'calculator', 'timer', 'draw', 'light', 'settings'];
+  LS.homeOrder = ['settings', 'games', 'buddy', 'camera', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light'];
+  LS.onRoute = [];
+  const route = () => LS.onRoute.forEach((f) => { try { f(); } catch (e) { console.warn(e); } });
   LS.register = (id, def) => { LS.apps[id] = def; };
   let current = null;
   LS.current = () => current;
@@ -264,8 +267,8 @@
     $('#appTitle').textContent = app.title;
     current = { id, app };
     show('appScreen');
-    try { app.open(body, actions, arg); } catch (e) { console.warn(e); body.append(LS.notice('⚠️', 'Something went wrong', 'This tool could not start on this device.')); }
-    LS.bumpIdle();
+    try { app.open(body, actions, arg); } catch (e) { console.warn(e); body.append(LS.notice('⚠️', 'Something went wrong', 'This app could not start on this device.')); }
+    LS.bumpIdle(); route();
   };
   LS.appBack = function () {
     if (current && current.app.back && current.app.back()) return;
@@ -274,8 +277,8 @@
   LS.closeApp = function (silent) {
     if (current && current.app.close) { try { current.app.close(); } catch (e) {} }
     current = null;
-    $('#appBody').innerHTML = '';
-    if (!silent) { show('home'); LS.renderHome && LS.renderHome(); }
+    $('#appBody').innerHTML = ''; $('#appBody').removeAttribute('style');
+    if (!silent) { show('home'); LS.renderHome && LS.renderHome(); route(); }
   };
   LS.onLock = [];
   LS.goLock = function () {
@@ -285,14 +288,15 @@
     LS.onLock.forEach((f) => { try { f(); } catch (e) {} });
     show('lock');
     LS.resetLockEntry && LS.resetLockEntry();
+    route();
   };
+  LS.isLocked = () => $('#lock').classList.contains('active');
   LS.unlock = function () {
     show('home');
     LS.renderHome && LS.renderHome();
-    LS.onUnlock && LS.onUnlock.forEach((f) => { try { f(); } catch (e) {} });
-    LS.bumpIdle();
+    LS.onUnlock.forEach((f) => { try { f(); } catch (e) {} });
+    LS.bumpIdle(); route();
   };
-  LS.onUnlock = [];
 
   LS.notice = (emoji, title, text, btn) => {
     const n = LS.el('div', { class: 'notice' }, LS.el('div', { class: 'big', text: emoji }), LS.el('h3', { text: title }), LS.el('p', { text: text }));
@@ -303,14 +307,15 @@
   /* ---------- Idle timer ---------- */
   let last = Date.now();
   LS.bumpIdle = () => { last = Date.now(); };
-  LS.idleBusy = () => false;
+  LS.busy = new Set(); // things that should keep the screen from auto-locking (recording, light)
+  LS.idleBusy = () => LS.busy.size > 0;
+  LS.idleLimitMs = () => { const m = Number(LS.settings.idleMin); return m > 0 ? m * 60000 : Infinity; };
   setInterval(() => {
     const onLock = $('#lock').classList.contains('active');
     if (onLock) { last = Date.now(); return; }
-    const min = LS.settings.idleMin;
-    if (min === 0 || min === 'never') return;
-    const limit = Math.max(0.5, Number(min) || 2) * 60000;
-    if (Date.now() - last > limit && !LS.idleBusy()) { LS.goLock(); LS.toast('Locked (idle)'); }
+    const limit = LS.idleLimitMs();
+    if (limit === Infinity) return;
+    if (Date.now() - last > limit && !LS.idleBusy()) { LS.goLock(); }
   }, 4000);
   ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach((ev) => document.addEventListener(ev, LS.bumpIdle, { passive: true, capture: true }));
 
@@ -331,5 +336,6 @@
   };
 
   LS.fmtDur = (ms) => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+  LS.VERSION = '1.0.0';
   LS.fmtDate = (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 })();

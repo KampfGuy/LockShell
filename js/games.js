@@ -5,6 +5,8 @@
   let cleanup = [], inGame = false, hubFn = null;
   function clean() { cleanup.forEach((f) => { try { f(); } catch (e) {} }); cleanup = []; }
   const best = (k, v) => { const key = 'lockshell.best.' + k; if (v != null) { if (v > (+localStorage.getItem(key) || 0)) localStorage.setItem(key, v); } return +localStorage.getItem(key) || 0; };
+  // lower-is-better (Memory moves)
+  const bestLow = (k, v) => { const key = 'lockshell.best.' + k; const cur = +localStorage.getItem(key) || 0; if (v != null && (!cur || v < cur)) localStorage.setItem(key, v); return +localStorage.getItem(key) || 0; };
   function scoreBox(label, val) { const b = el('b', { text: val }); return [el('div', { class: 'score' }, el('small', { text: label }), b), b]; }
 
   const GAMES = {
@@ -24,8 +26,9 @@
         const g = el('div', { class: 'game-grid' });
         Object.keys(GAMES).forEach((k) => {
           const G = GAMES[k];
+          const hs = k === 'memory' ? (bestLow('memory') ? 'Best: ' + bestLow('memory') + ' moves' : 'No best yet') : k === 'ttt' ? 'Wins: ' + best('tttwins') : 'Best: ' + best(k === 'g2048' ? '2048' : k);
           g.append(el('button', { class: 'game-card', style: { background: G.bg }, onclick: () => play(k) },
-            el('div', { class: 'e', text: G.emoji }), el('div', null, el('b', { text: G.name }), el('small', { text: G.desc }))));
+            el('div', { class: 'e', text: G.emoji }), el('div', null, el('b', { text: G.name }), el('small', { text: G.desc }), el('small', { class: 'hs', text: hs }))));
         });
         body.append(el('div', { class: 'pad' }, g));
       }
@@ -47,21 +50,23 @@
   function snake(body, actions) {
     const N = 18;
     const [sb, sv] = scoreBox('Score', 0), [bb, bv] = scoreBox('Best', best('snake'));
-    const size = Math.min(window.innerWidth - 32, window.innerHeight - 290, 420);
+    const size = Math.floor(Math.min(window.innerWidth - 40, window.innerHeight - 420, 420) / N) * N;
     const cv = el('canvas', { class: 'board' });
     const dpr = window.devicePixelRatio || 1;
     cv.width = size * dpr; cv.height = size * dpr; cv.style.width = cv.style.height = size + 'px';
     const g = cv.getContext('2d'); g.scale(dpr, dpr);
     const cell = size / N;
-    const msg = el('div', { class: 'game-msg', text: 'Swipe (or use arrow keys) to start' });
-    const area = el('div', { class: 'game-area' }, el('div', { class: 'score-row' }, sb, bb), cv, msg);
+    const msg = el('div', { class: 'game-msg', text: 'Swipe or tap an arrow to start' });
+    const pad = el('div', { class: 'dpad' });
+    [['up', '▲'], ['left', '◀'], ['down', '▼'], ['right', '▶']].forEach(([d, t]) => pad.append(el('button', { class: 'd-' + d, 'aria-label': d, text: t, onpointerdown: (e) => { e.preventDefault(); turn(d); } })));
+    const area = el('div', { class: 'game-area' }, el('div', { class: 'score-row' }, sb, bb), cv, msg, pad);
     actions.append(el('button', { class: 'pill-btn', text: 'Restart', onclick: reset }));
     body.append(area);
     let s, dir, next, food, score, loop, alive, started;
     function place() { do { food = { x: (Math.random() * N) | 0, y: (Math.random() * N) | 0 }; } while (s.some((p) => p.x === food.x && p.y === food.y)); }
     function reset() {
       clearInterval(loop); s = [{ x: 8, y: 9 }, { x: 7, y: 9 }, { x: 6, y: 9 }]; dir = { x: 1, y: 0 }; next = dir; score = 0; alive = true; started = false;
-      sv.textContent = 0; msg.textContent = 'Swipe (or use arrow keys) to start'; place(); draw();
+      sv.textContent = 0; msg.textContent = 'Swipe or tap an arrow to start'; place(); draw();
     }
     function speed() { return Math.max(70, 150 - score * 3); }
     function start() { started = true; msg.textContent = ''; clearInterval(loop); loop = setInterval(step, speed()); }
@@ -70,7 +75,7 @@
       const h = { x: s[0].x + dir.x, y: s[0].y + dir.y };
       if (h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || s.some((p) => p.x === h.x && p.y === h.y)) {
         alive = false; clearInterval(loop); best('snake', score); bv.textContent = best('snake');
-        msg.textContent = 'Game over! Swipe to play again'; if (navigator.vibrate) navigator.vibrate(200); draw(); return;
+        msg.textContent = 'Game over! Tap an arrow to play again'; if (navigator.vibrate) navigator.vibrate(200); draw(); return;
       }
       s.unshift(h);
       if (h.x === food.x && h.y === food.y) { score++; sv.textContent = score; place(); clearInterval(loop); loop = setInterval(step, speed()); }
@@ -79,19 +84,20 @@
     }
     function rr(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.fill(); }
     function draw() {
-      g.fillStyle = '#0f1630'; g.fillRect(0, 0, size, size);
-      g.fillStyle = 'rgba(255,255,255,.03)';
+      g.fillStyle = '#eef6ee'; g.fillRect(0, 0, size, size);
+      g.fillStyle = 'rgba(52,199,89,.08)';
       for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if ((i + j) % 2) g.fillRect(i * cell, j * cell, cell, cell);
       g.fillStyle = '#f43f5e'; g.beginPath(); g.arc(food.x * cell + cell / 2, food.y * cell + cell / 2, cell * 0.38, 0, 7); g.fill();
-      s.forEach((p, i) => { g.fillStyle = i === 0 ? '#6ee7b7' : `hsl(${150 + i * 2},70%,${50 - Math.min(i, 20)}%)`; rr(p.x * cell + 1, p.y * cell + 1, cell - 2, cell - 2, cell * 0.3); });
-      if (!alive) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, size, size); }
+      s.forEach((p, i) => { g.fillStyle = i === 0 ? '#1f9d48' : `hsl(${135 + i * 2},60%,${45 + Math.min(i, 20)}%)`; rr(p.x * cell + 1, p.y * cell + 1, cell - 2, cell - 2, cell * 0.3); });
+      if (!alive) { g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, 0, size, size); }
     }
     const D = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
-    const off = LS.onSwipe(area, (d) => {
+    function turn(d) {
       if (!alive) { reset(); }
       const nd = D[d]; if (nd.x === -dir.x && nd.y === -dir.y && s.length > 1) return;
       next = nd; if (!started) start();
-    });
+    }
+    const off = LS.onSwipe(cv, turn);
     cleanup.push(() => clearInterval(loop), off);
     reset();
   }
@@ -183,7 +189,7 @@
     function finish(r) {
       over = true; again.hidden = false;
       if (r.w) r.w.forEach((i) => btns[i].classList.add('win'));
-      if (r.p === 'X') { tally.you++; msg.textContent = '🎉 You win!'; } else if (r.p === 'O') { tally.ai++; msg.textContent = 'AI wins this time'; } else { tally.tie++; msg.textContent = "It's a tie"; }
+      if (r.p === 'X') { tally.you++; best('tttwins', best('tttwins') + 1); msg.textContent = '🎉 You win!'; } else if (r.p === 'O') { tally.ai++; msg.textContent = 'AI wins this time'; } else { tally.tie++; msg.textContent = "It's a tie"; }
       yv.textContent = tally.you; av.textContent = tally.ai; tv.textContent = tally.tie;
     }
     function human(i) {
@@ -200,11 +206,11 @@
   /* ---------------- Memory ---------------- */
   function memory(body, actions) {
     const E = ['🐶', '🐱', '🦊', '🐼', '🐸', '🦄', '🐙', '🦋'];
-    const [mb, mv] = scoreBox('Moves', 0), [pb, pv] = scoreBox('Pairs', '0/8');
+    const [mb, mv] = scoreBox('Moves', 0), [pb, pv] = scoreBox('Pairs', '0/8'), [bb2, bv2] = scoreBox('Best', bestLow('memory') || '–');
     const grid = el('div', { class: 'mem' });
     const msg = el('div', { class: 'game-msg', text: 'Flip two cards to find a match' });
     actions.append(el('button', { class: 'pill-btn', text: 'Shuffle', onclick: reset }));
-    body.append(el('div', { class: 'game-area' }, el('div', { class: 'score-row' }, mb, pb), grid, msg));
+    body.append(el('div', { class: 'game-area' }, el('div', { class: 'score-row' }, mb, pb, bb2), grid, msg));
     let open = [], moves = 0, pairs = 0, lock = false, timers = [];
     cleanup.push(() => timers.forEach(clearTimeout));
     function reset() {
@@ -226,7 +232,7 @@
       const [a, b] = open;
       if (a.dataset.e === b.dataset.e) {
         a.classList.add('done'); b.classList.add('done'); open = []; pairs++; pv.textContent = pairs + '/8';
-        if (pairs === 8) { best('memory', 1000 - moves); msg.textContent = `🎉 All pairs in ${moves} moves!`; }
+        if (pairs === 8) { bv2.textContent = bestLow('memory', moves); msg.textContent = `🎉 All pairs in ${moves} moves!`; }
       } else {
         lock = true;
         timers.push(setTimeout(() => { a.classList.remove('up'); b.classList.remove('up'); open = []; lock = false; }, 800));

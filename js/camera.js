@@ -34,9 +34,9 @@
       sh.append(el('img', { src: u, alt: 'Photo' }), el('p', { class: 'muted', text: LS.fmtDate(p.created) }),
         el('div', { class: 'btns' },
           el('button', { class: 'ghost-btn', text: 'Close', onclick: close }),
-          el('button', { class: 'ghost-btn danger-btn', text: 'Delete (PIN)', onclick: async () => {
+          el('button', { class: 'ghost-btn danger-btn', text: 'Delete', onclick: async () => {
             close();
-            if (await LS.requirePin('PIN required to delete photos')) { await LS.db.del('photos', p.id); LS.toast('Photo deleted'); renderThumbs(strip); }
+            if (await LS.requirePin('Passcode needed to delete photos')) { await LS.db.del('photos', p.id); LS.toast('Photo deleted'); renderThumbs(strip); }
           } })));
     });
   }

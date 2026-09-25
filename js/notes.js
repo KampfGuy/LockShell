@@ -2,12 +2,13 @@
 (function () {
   'use strict';
   const { el, icon } = LS;
-  let saveT = null, flush = null;
+  let saveT = null, flush = null, inEditor = false, listFn = null;
 
   LS.register('notes', {
     title: 'Notes', icon: 'notes', color: 'linear-gradient(135deg,#f59e0b,#d97706)',
     open(body, actions) {
       async function showList() {
+        inEditor = false;
         if (flush) { await flush(); flush = null; }
         LS.$('#appTitle').textContent = 'Notes';
         actions.innerHTML = '';
@@ -22,6 +23,7 @@
         });
       }
       function edit(note) {
+        inEditor = true;
         note = note || { id: LS.uid(), created: Date.now(), updated: Date.now(), title: '', body: '' };
         LS.$('#appTitle').textContent = note.title || 'New note';
         body.innerHTML = ''; body.className = 'app-body';
@@ -45,9 +47,10 @@
         body.append(el('div', { class: 'editor' }, title, text));
         if (!note.title && !note.body) setTimeout(() => title.focus(), 50);
       }
-      LS.$('#appBack').dataset.notes = '1';
+      listFn = showList;
       showList();
     },
-    close() { if (flush) { flush(); flush = null; } }
+    back() { if (inEditor && listFn) { listFn(); return true; } return false; },
+    close() { inEditor = false; if (flush) { flush(); flush = null; } }
   });
 })();
