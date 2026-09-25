@@ -345,7 +345,7 @@ input[type=range]{width:140px;accent-color:var(--accent)}
 
 /* ===== v1 additions: white iOS look ===== */
 :root{--bg:#ffffff;--home:#f5f6f8}
-[data-theme="dark"]{--home:#000000}
+[data-theme="dark"]{--bg:#000000;--home:#000000}
 #lock{background:linear-gradient(180deg,#ffffff 0%,#f4f7fc 100%)}
 [data-theme="dark"] #lock{background:linear-gradient(180deg,#000 0%,#0b0f18 100%)}
 #home{background:var(--home)}
