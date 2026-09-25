@@ -149,6 +149,14 @@
   }
   let listening = false;
   function attachMotion() { if (listening || !('DeviceMotionEvent' in window)) return; window.addEventListener('devicemotion', onMotion); listening = true; }
+  // After sleep / background / unlock: forget stale readings (so the first new reading isn't a fake jolt) and re-attach
+  // the listener once (removeEventListener + add keeps it to a single listener).
+  function resumeMotion() {
+    last = null; peaks = [];
+    if (!('DeviceMotionEvent' in window)) return;
+    if (needsPermission() && LS.settings.motionPerm !== 'granted') return;
+    window.removeEventListener('devicemotion', onMotion); listening = false; attachMotion();
+  }
   const needsPermission = () => !!(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function');
   // Must be called from a tap (iOS rule).
   async function requestMotion() {
@@ -182,5 +190,5 @@
   const fab = LS.$('#voiceFab');
   if (fab) { fab.innerHTML = icon('mic'); fab.onclick = () => { LS.primeSpeech && LS.primeSpeech(); open({ from: 'button' }); }; }
 
-  LS.voice = { open, close, ask: (t) => ask(t), isOpen: () => state !== 'closed', state: () => state, onMotion, requestMotion, afterFirstUnlock, needsPermission, supported: !!SR };
+  LS.voice = { open, close, ask: (t) => ask(t), isOpen: () => state !== 'closed', state: () => state, onMotion, requestMotion, resumeMotion, afterFirstUnlock, needsPermission, supported: !!SR };
 })();

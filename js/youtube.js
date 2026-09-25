@@ -151,7 +151,8 @@
     LS.busy.add('youtube'); lastTouch = Date.now();
     let lastT = Date.now(), saveN = 0;
     tick = setInterval(() => {
-      const now = Date.now(), dt = Math.min(5000, now - lastT); lastT = now;
+      const now = Date.now(); let dt = Math.min(5000, Math.max(0, now - lastT)); lastT = now;
+      if (resync) { resync = false; dt = 0; } // first tick after being hidden: don't count the time away
       if (!cur) return;
       if (!document.hidden && !LS.isLocked()) {
         roll(); U.usedMs += dt; cur.watched += dt;
@@ -165,6 +166,8 @@
       if (!cur.heard && now - cur.start > ((cur.durS || 1800) + 120) * 1000) ended();
     }, 1000);
   }
+  let resync = false;
+  document.addEventListener('visibilitychange', () => { resync = true; if (document.hidden && cur) { saveU(); saveWatched(); } });
   function saveWatched() { if (!cur) return; const h = hist(); const e = h[cur.idx] && h[cur.idx].id === cur.v.id ? h[cur.idx] : h[h.length - 1]; if (e && e.id === cur.v.id) { e.watchedMs = cur.watched; saveHist(h); } }
   function markHist(extra) { if (!cur) return; const h = hist(); const e = h[cur.idx] && h[cur.idx].id === cur.v.id ? h[cur.idx] : null; if (e) { Object.assign(e, extra, { watchedMs: cur.watched }); saveHist(h); } }
 

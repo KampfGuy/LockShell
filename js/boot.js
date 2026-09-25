@@ -133,6 +133,29 @@
     if (LS.wake) LS.wake.sync();
   });
 
+  /* ---------- Resume after sleep / background / unlock ---------- */
+  // iOS can leave speech recognition, motion and audio in a dead state after the phone locks or ShellOS goes to the
+  // background. Whenever ShellOS is visible again (visibilitychange, pageshow, focus) or is unlocked, restart them once.
+  // Bursts of these events (they usually arrive together) are merged into one resume.
+  LS.onResume = []; LS.resumeCount = 0;
+  let resumeT = null;
+  LS.resumeAll = function () {
+    clearTimeout(resumeT);
+    resumeT = setTimeout(() => {
+      resumeT = null;
+      if (document.hidden) return;
+      LS.resumeCount++;
+      try { if (LS.wake && LS.wake.resume) LS.wake.resume(); } catch (e) {}
+      try { if (LS.voice && LS.voice.resumeMotion) LS.voice.resumeMotion(); } catch (e) {}
+      try { LS.audioResume && LS.audioResume(); } catch (e) {}
+      LS.onResume.forEach((f) => { try { f(); } catch (e) {} });
+    }, 250);
+  };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) LS.resumeAll(); });
+  window.addEventListener('pageshow', () => LS.resumeAll());
+  window.addEventListener('focus', () => LS.resumeAll());
+  LS.onUnlock.push(() => LS.resumeAll());
+
   /* ---------- Kiosk guards ---------- */
   // No pinch zoom / double-tap zoom / context menus / pull-to-refresh / overscroll bounce.
   ['gesturestart', 'gesturechange', 'gestureend'].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));

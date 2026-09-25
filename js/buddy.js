@@ -119,7 +119,7 @@
   });
 
   /* ---------- Wake word: "Buddy" / "Hey Buddy" ---------- */
-  const wake = LS.wake = { active: false, failed: false, paused: false, rec: null, backoff: 1000, timer: null };
+  const wake = LS.wake = { active: false, failed: false, paused: false, rec: null, backoff: 1000, timer: null, starts: 0, lastError: '' };
   function wanted() {
     const cur = LS.current();
     return !!(SR && LS.settings.wakeWord && !wake.failed && !wake.paused && !speaking && !document.hidden && !LS.isLocked() &&
@@ -135,7 +135,7 @@
     if (wake.rec || wake.timer) return;
     let r;
     try { r = new SR(); } catch (e) { wake.failed = true; return; }
-    wake.rec = r;
+    wake.rec = r; wake.starts++; wake.startedAt = Date.now();
     r.lang = 'en-US'; r.continuous = true; r.interimResults = false; r.maxAlternatives = 1;
     r.onstart = () => { wake.active = true; indicator(); };
     r.onresult = (e) => {
@@ -154,7 +154,13 @@
       }
     };
     r.onerror = (e) => {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { wake.failed = true; if (e.error === 'not-allowed') { LS.settings.micPerm = 'denied'; LS.saveSettings(); } }
+      wake.lastError = e.error || '';
+      // iOS: 'not-allowed' also happens when a session starts while the page is in the background, so only treat it as a
+      // real "no" when the page is visible; otherwise onend retries with backoff. 'aborted' / 'no-speech' just retry.
+      if ((e.error === 'not-allowed' || e.error === 'service-not-allowed') && !document.hidden) {
+        wake.denials = (wake.denials || 0) + 1;
+        if (wake.denials >= 2 || e.error === 'service-not-allowed') { wake.failed = true; if (e.error === 'not-allowed') { LS.settings.micPerm = 'denied'; LS.saveSettings(); } }
+      }
     };
     r.onend = () => {
       wake.rec = null; wake.active = false; indicator();
@@ -166,6 +172,16 @@
     try { r.start(); } catch (e) { wake.rec = null; wake.timer = setTimeout(() => { wake.timer = null; if (wanted()) startWake(); }, wake.backoff); wake.backoff = Math.min(wake.backoff * 2, 30000); }
   }
   wake.sync = function () { if (wanted()) startWake(); else stopWake(); };
+  // After the phone sleeps / the app is backgrounded / ShellOS is unlocked, iOS often leaves a dead recognizer behind that
+  // never fires onend, so a plain sync() would wait on it forever. Resume throws away any old session and pending retry,
+  // resets the backoff, and starts exactly one fresh recognizer (if the wake word is wanted right now).
+  wake.resume = function () {
+    if (wake.rec && Date.now() - (wake.startedAt || 0) < 1500) { wake.backoff = 1000; return; } // just started fresh: keep it (no duplicates)
+    stopWake();
+    wake.backoff = 1000; wake.denials = 0;
+    if (wake.failed && LS.settings.micPerm !== 'denied') wake.failed = false;
+    wake.sync();
+  };
   wake.pause = function (p) { wake.paused = !!p; wake.sync(); };
   wake.reset = function () { wake.failed = false; wake.backoff = 1000; wake.sync(); };
   wake.supported = !!SR;
