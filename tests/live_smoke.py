@@ -1,0 +1,48 @@
+"""Short smoke test against the live GitHub Pages URL. Run: python3 tests/live_smoke.py"""
+import sys
+from playwright.sync_api import sync_playwright
+URL = sys.argv[1] if len(sys.argv) > 1 else 'https://kampfguy.github.io/LockShell/'
+errors, fails = [], []
+def check(c, m):
+    print(('PASS ' if c else 'FAIL ') + m)
+    if not c: fails.append(m)
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    page.on('pageerror', lambda e: errors.append(str(e)))
+    page.on('console', lambda m: errors.append(m.text) if m.type == 'error' else None)
+    r = page.goto(URL + '?smoke=1'); page.wait_for_timeout(1500)
+    check(r.status == 200, 'live page 200')
+    check(page.evaluate('LS.VERSION') == '1.1.0', 'LS.VERSION 1.1.0')
+    act = lambda s: page.eval_on_selector(s, 'e => e.classList.contains("active")')
+    tap = lambda k: page.click(f'#lockPad button[data-k="{k}"]')
+    for k in '19845': tap(k)
+    page.wait_for_timeout(700); check(act('#lock') and not act('#home'), 'lock screen rejects developer code')
+    tap('back'); page.wait_for_timeout(100)
+    for k in '1234': tap(k)
+    page.wait_for_timeout(900); check(act('#home'), '1234 unlocks')
+    check(page.locator('#tiles .tile[data-app="piano"]').count() == 0, 'Piano hidden by default')
+    page.click('#tiles .tile[data-app="settings"]'); page.wait_for_timeout(500)
+    page.click('.set-row:has-text("Developer")'); page.wait_for_timeout(300)
+    def code(c):
+        for k in c: page.click(f'#pinOverlay button[data-k="{k}"]')
+        page.click('#pinOverlay .primary-btn'); page.wait_for_timeout(500)
+    code('55555'); check(page.inner_text('#appTitle') == 'Settings', 'wrong developer code rejected')
+    code('19845'); check(page.inner_text('#appTitle') == 'Developer Tools', 'developer code opens Developer Tools')
+    page.click('button[aria-label="Add Piano"]'); page.wait_for_timeout(300)
+    page.click('button[aria-label="Add Sky Hop"]'); page.wait_for_timeout(300)
+    page.click('.dev-exit'); page.wait_for_timeout(300); page.click('#appBack'); page.wait_for_timeout(400)
+    check(page.locator('#tiles .tile[data-app="piano"]').count() == 1, 'Piano added to home')
+    page.click('#tiles .tile[data-app="piano"]'); page.wait_for_timeout(500)
+    check(page.inner_text('#appTitle') == 'Piano', 'Piano opens'); page.click('#appBack'); page.wait_for_timeout(400)
+    page.click('#tiles .tile[data-app="games"]'); page.wait_for_timeout(400)
+    page.click('.game-card:has-text("Sky Hop")'); page.wait_for_timeout(600)
+    check(page.inner_text('#appTitle') == 'Sky Hop', 'Sky Hop starts')
+    page.wait_for_timeout(1500)
+    caches = page.evaluate('caches.keys()')
+    check('lockshell-v1.1.0' in caches, 'SW cache lockshell-v1.1.0 (' + ','.join(caches) + ')')
+    check(not errors, 'no page/console errors ' + str(errors))
+    b.close()
+print('RESULT:', 'ALL PASSED' if not fails else 'FAILED ' + str(fails))
+sys.exit(1 if fails else 0)
