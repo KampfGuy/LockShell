@@ -1,10 +1,10 @@
 /* ShellOS (LockShell) service worker: cache-first for local assets, network-first for Open-Meteo.
    YouTube, Wikipedia and kid sites are cross-origin and never cached. */
-const VERSION = 'lockshell-v1.3.0';
+const VERSION = 'lockshell-v1.4.0';
 const ASSETS = [
   './', 'index.html', 'manifest.json', 'css/app.css',
   'js/core.js', 'js/shell-filter.js', 'js/buddy-brain.js', 'js/buddy.js', 'js/voice.js', 'js/camera.js', 'js/recorder.js', 'js/notes.js',
-  'js/weather.js', 'js/games.js', 'js/games2.js', 'js/games3.js', 'js/tools.js', 'js/apps2.js', 'js/shell.js',
+  'js/weather.js', 'js/games.js', 'js/games2.js', 'js/games3.js', 'js/moonrocket.js', 'js/blockworld.js', 'img/saturn-v.png', 'js/tools.js', 'js/apps2.js', 'js/shell.js',
   'js/yt-library.js', 'js/youtube.js', 'js/photos.js', 'js/stories-data.js', 'js/stories.js', 'js/quiz-data.js', 'js/quiz.js',
   'js/settings.js', 'js/dev.js', 'js/screentime.js', 'js/boot.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'

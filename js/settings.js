@@ -69,6 +69,8 @@
       head('Apps'),
       group(
         row('Weather Units', seg([['F', '°F'], ['C', '°C']], s.weatherUnit, (v) => { s.weatherUnit = v; save(); }), { icon: ['⛅', '#5ac8fa'] }),
+        row('Game Sounds', toggle(s.gameSound !== false, (v) => { s.gameSound = v; save(); if (v) LS.tone(660, 0.12); }, 'Game Sounds'), { icon: ['🔊', '#ff2d55'] }),
+        row('Game Volume', volRange(), { icon: ['🎚️', '#ff9500'] }),
         row('Home Screen Apps', chev(), { icon: ['▦', '#5856d6'], onclick: async () => { if (await LS.requirePin('Enter passcode to change Home Screen apps')) push('Home Screen Apps', appsPage); } }),
         row('Storage', chev(), { icon: ['image', '#ff9500'], onclick: async () => { if (await LS.requirePin('Enter passcode to manage storage')) push('Storage', storagePage); } })),
       head('Info'),
@@ -77,6 +79,12 @@
         row('About', chev(), { icon: ['ℹ️', '#8e8e93'], onclick: () => push('About', aboutPage) }),
         row('Developer', chev(), { icon: ['code', '#48484a'], onclick: () => LS.openDevGate && LS.openDevGate() }))
     );
+  }
+  function volRange() {
+    const s = LS.settings, v = Math.round((s.gameVolume == null ? 0.8 : s.gameVolume) * 100);
+    const r = el('input', { type: 'range', min: 0, max: 100, step: 10, value: v, 'aria-label': 'Game Volume' });
+    r.onchange = () => { s.gameVolume = Number(r.value) / 100; save(); LS.tone(660, 0.12); };
+    return el('span', { class: 'val' }, r);
   }
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   function permLabel() { return { granted: 'Allowed', denied: 'Blocked', unavailable: 'Unavailable', unknown: 'Not asked' }[LS.settings.micPerm] || 'Not asked'; }
@@ -257,6 +265,12 @@
         <li><b>Stories</b> has short stories with big text. Tap <b>Read to me</b> and Buddy reads out loud, lighting up each sentence. Tap any sentence to start there.</li>
         <li><b>Quiz</b> has over 100 questions about animals, space, geography, math and science, and remembers your best score.</li>
       </ol>
+      <h3>Moon Rocket and Block World</h3>
+      <ol>
+        <li><b>Moon Rocket:</b> drag the Saturn V rocket with your finger. Dodge planes, birds and weather balloons in the sky and asteroids in space, and fly all the way to the Moon. If you bump into something, tap to try again from the last checkpoint.</li>
+        <li><b>Block World:</b> build your own block world. Pick a block at the bottom, then choose <b>Move</b> (drag to look around), <b>Dig</b> (tap or drag to dig) or <b>Build</b> (tap or drag to place; hold on a block to dig it). Walk and jump with the big arrow buttons. Your world is saved on this phone. <b>New world</b> starts a fresh one.</li>
+        <li>Best scores go back to 0 each time ShellOS is locked and unlocked (a parent can change this in the Developer Tools). Game sounds and their volume are in Settings.</li>
+      </ol>
       <h3>Screen Time in ShellOS</h3>
       <ol>
         <li>A parent can set a daily ShellOS time limit and a bedtime in the Developer Tools. Both are off to start.</li>
@@ -296,13 +310,14 @@
       group(row('Works offline', el('span', { class: 'val', text: 'Yes (except Weather, Shell, YouTube)' })), row('Accounts or tracking', el('span', { class: 'val', text: 'None' })), row('Data location', el('span', { class: 'val', text: 'This phone only' }))),
       sec('Apps (' + apps.length + ')', '<p>' + LS.esc(apps.join(', ')) + '</p>'),
       sec('Games (' + games.length + ')', '<p>' + LS.esc(games.join(', ')) + '</p>'),
-      sec('Buddy', '<p><b>Can:</b> tell the time and date, do math, convert units, explain simple words, tell jokes, fun facts and riddles, flip coins and roll dice, open apps and games (like "open YouTube", "tell me a story" or "quiz me"), and search Shell for you. Shake the phone or tap the mic button to talk with just your voice.</p><p><b>Can\'t:</b> go on the internet, remember chats after the phone locks, or help with anything unsafe. It refuses sexual, violent, drug, hacking, hateful or self-harm topics, and never helps get past the lock, the passcode, the web filter, time limits or Guided Access. If someone sounds sad or unsafe, it points them to a trusted adult and 988.</p>'),
+      sec('Buddy', '<p><b>Can:</b> tell the time and date, do math, convert units, explain simple words, tell jokes, fun facts and riddles, flip coins and roll dice, open apps and games (like "open YouTube", "tell me a story", "quiz me", "open Moon Rocket" or "play Block World"), and search Shell for you. Shake the phone or tap the mic button to talk with just your voice.</p><p><b>Can\'t:</b> go on the internet, remember chats after the phone locks, or help with anything unsafe. It refuses sexual, violent, drug, hacking, hateful or self-harm topics, and never helps get past the lock, the passcode, the web filter, time limits or Guided Access. If someone sounds sad or unsafe, it points them to a trusted adult and 988.</p>'),
       sec('Safety', li([
         '<b>Buddy filter:</b> every message is checked before Buddy answers (including leetspeak and spaced-out words), and every reply is checked again before it is shown or spoken.',
         '<b>Shell filter:</b> Wikipedia (Simple English) is shown inside ShellOS only after the title, the article categories and the whole article text pass the filter. Sexual topics are always blocked. War and history are allowed, but pages about massacres, genocide, torture, terrorism, executions or other graphic events are blocked. Searches are filtered too. If a check cannot finish, the page is not shown.',
         '<b>Kid websites:</b> only a short list of checked kid sites can open, inside a locked frame that cannot open pop-ups, leave ShellOS, or go to other websites. Any other address is blocked.',
         'Images in Wikipedia are off by default.',
-        '<b>Stories and Quiz</b> are written for ShellOS and live on the phone, so they work offline.'
+        '<b>Stories and Quiz</b> are written for ShellOS and live on the phone, so they work offline.',
+        '<b>Games</b> have no chat, ads, accounts or scary monsters. Moon Rocket crashes are a gentle "Bonk!" with a retry, and Block World is a calm building game. Best scores reset to 0 every time ShellOS is unlocked after a lock (a Developer Tools setting, on by default).'
       ])),
       sec('YouTube safety', li([
         '<b>Approved videos only:</b> ' + (window.YTLibrary ? window.YTLibrary.VIDEOS.length : 39) + ' checked videos to start, from ' + (window.YTLibrary ? window.YTLibrary.CHANNELS.map((c) => c.ch).join(', ') : 'kids\' channels') + '. A parent can add or remove videos. There is no YouTube search.',
@@ -324,7 +339,7 @@
         'ShellOS cannot lock the phone by itself. Turn on <b>Guided Access</b> (Settings &gt; Accessibility &gt; Guided Access) so the phone stays inside ShellOS. See Help &amp; Setup.'
       ])),
       sec('Recommended: Screen Time', '<ol><li>Open the <b>Settings</b> app &gt; <b>Screen Time</b> &gt; turn it on and set a Screen Time passcode.</li><li>Tap <b>Content &amp; Privacy Restrictions</b> and turn it on.</li><li>Tap <b>App Store, Media, Web &amp; Games</b> (or <b>Content Restrictions</b>) &gt; <b>Web Content</b> &gt; <b>Limit Adult Websites</b>.</li><li>This adds Apple\'s own filter on top of ShellOS for every website.</li></ol>'),
-      sec('Credits', '<p>Made by <b>Kampf Kaiser</b> (KampfGuy). Project name: LockShell. Weather data by Open-Meteo.com. Articles from Wikipedia (CC BY-SA). Kid websites and videos belong to their owners. Stories and quiz questions are original to ShellOS.</p>')
+      sec('Credits', '<p>Made by <b>Kampf Kaiser</b> (KampfGuy). Project name: LockShell. Weather data by Open-Meteo.com. Articles from Wikipedia (CC BY-SA). Kid websites and videos belong to their owners. Stories and quiz questions are original to ShellOS. The Moon Rocket Saturn V is rendered from Kampf Kaiser\'s own Blender model. Block World is an original game with textures drawn in code.</p>')
     );
   }
 

@@ -820,3 +820,25 @@ canvas.board2{border-radius:16px;box-shadow:var(--shadow);touch-action:none}
 .sh-blocked .btns{display:flex;flex-direction:column;gap:10px}
 .st-btn svg,.ph-nav svg,.ph-del svg{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .ph-nav,.ph-del{color:#fff}
+
+/* ---------- Moon Rocket ---------- */
+canvas.mr-canvas{background:#4aa8ff}
+/* ---------- Block World ---------- */
+.app-body.bw-body{background:#1c2a1a;padding-bottom:calc(var(--sab) + 6px)}
+.bw-wrap{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none}
+.bw-canvas{display:block;touch-action:none}
+.bw-find{position:absolute;top:8px;left:8px;width:40px;height:40px;border-radius:12px;border:0;background:rgba(0,0,0,.35);color:#fff;font-size:20px}
+.bw-hotbar{display:flex;gap:6px;overflow-x:auto;padding:8px 8px 4px;background:#2b2b2b;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.bw-hotbar::-webkit-scrollbar{display:none}
+.bw-slot{flex:0 0 auto;width:52px;height:56px;border-radius:10px;border:3px solid #555;background:#3a3a3a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px;color:#ddd}
+.bw-slot small{font-size:9px;line-height:1;font-weight:700}
+.bw-slot.on{border-color:#ffd60a;background:#4a4a2a}
+.bw-ic{width:28px;height:28px;image-rendering:pixelated;border-radius:3px}
+.bw-ctrls{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;background:#2b2b2b}
+.bw-pad,.bw-modes{display:flex;gap:6px}
+.bw-move{width:58px;height:58px;border-radius:16px;border:0;background:#4a4a4a;color:#fff;font-size:26px;font-weight:800;touch-action:none;-webkit-user-select:none;user-select:none}
+.bw-move.down{background:#6a6a6a;transform:scale(.95)}
+.bw-mode{width:54px;height:58px;border-radius:14px;border:3px solid transparent;background:#3a3a3a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.bw-mode .e{font-size:22px;line-height:1}
+.bw-mode small{font-size:10px;font-weight:700}
+.bw-mode.on{border-color:#ffd60a;background:#5a5020}

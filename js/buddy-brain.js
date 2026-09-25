@@ -375,7 +375,9 @@
     { re: /\bconnect (four|4)\b|\bfour in a row\b/, arg: 'connect4', name: 'Connect Four' },
     { re: /\bsky ?hop\b|\bflappy\b/, arg: 'skyhop', name: 'Sky Hop' },
     { re: /\bword ?search\b|\bword find\b/, arg: 'wordsearch', name: 'Word Search' },
-    { re: /\bsimon( says)?\b|\bcolor memory\b/, arg: 'simon', name: 'Simon' }
+    { re: /\bsimon( says)?\b|\bcolor memory\b/, arg: 'simon', name: 'Simon' },
+    { re: /\bmoon ?rocket\b|\brocket (game|ship)\b|\bsaturn ?(v|5|five)\b|\bfly (a rocket |the rocket )?to the moon\b|\bthe rocket\b|\brocket\b/, arg: 'moonrocket', name: 'Moon Rocket' },
+    { re: /\bblock ?(world|craft|building)\b|\bbuilding blocks?\b|\bminecraft\b|\bdig and build\b/, arg: 'blockworld', name: 'Block World' }
   ];
 
   /* ======================= STYLES ======================= */
@@ -416,7 +418,7 @@
   };
 
   /* ======================= REPLY ======================= */
-  const HELP = 'I can: tell the time and date 🕒, do math ➗, convert units (like "5 miles to km" or "70 F to C") 📏, explain words 📖, tell jokes 😂, fun facts 🤓 and riddles 🧩, flip a coin 🪙 or roll dice 🎲, and open apps: "open calculator", "play snake", "open YouTube", "tell me a story", "start a quiz", "take a picture", "what\'s the weather", or "search Wikipedia for volcanoes".';
+  const HELP = 'I can: tell the time and date 🕒, do math ➗, convert units (like "5 miles to km" or "70 F to C") 📏, explain words 📖, tell jokes 😂, fun facts 🤓 and riddles 🧩, flip a coin 🪙 or roll dice 🎲, and open apps: "open calculator", "play snake", "open Moon Rocket", "play Block World", "open YouTube", "tell me a story", "start a quiz", "take a picture", "what\'s the weather", or "search Wikipedia for volcanoes".';
 
   function reply(input, opts) {
     opts = opts || {};
@@ -473,7 +475,7 @@
       if (has(/\b(thank you|thanks|thx|ty)\b/)) return { text: pick(S.thanks) };
       if (has(/^(bye|goodbye|see you|see ya|good night|goodnight|later)\b/)) return { text: has(/good ?night/) ? 'Good night! Sweet dreams! 🌙' : pick(S.bye) };
       if (has(/\bi (love|like) you\b/)) return { text: "Aw, thanks! You're a great friend too! 💙" };
-      if (has(/\bi ?(am|m) (bored)\b|\bim bored\b/)) return { text: "Let's fix that! Say \"play snake\", \"tell me a riddle\", or \"open drawing\"." };
+      if (has(/\bi ?(am|m) (bored)\b|\bim bored\b/)) return { text: "Let's fix that! Say \"play Moon Rocket\", \"play Block World\", \"tell me a riddle\", or \"open drawing\"." };
       if (has(/\b(i am|im|i feel|feeling) (sad|lonely|upset|down|scared|worried|angry|mad)\b/)) return { text: "I'm sorry you're feeling that way. It's okay to have big feelings. Talking to someone you trust can really help. Want a joke or a fun fact to cheer up a little?" };
       if (has(/\b(i am|im|i feel|feeling) (happy|good|great|awesome|fine|ok|okay)\b/)) return { text: style === 'funny' ? 'Woohoo! 🎉 Happy vibes all around!' : "That's wonderful to hear! 😊" };
 
