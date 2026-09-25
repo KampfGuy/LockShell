@@ -265,11 +265,14 @@
     const body = $('#appBody'), actions = $('#appActions');
     body.innerHTML = ''; actions.innerHTML = ''; body.className = 'app-body';
     $('#appTitle').textContent = app.title;
+    LS.backLabel('Home');
+    $('#appScreen').classList.toggle('dark-bar', !!app.darkBar);
     current = { id, app };
     show('appScreen');
     try { app.open(body, actions, arg); } catch (e) { console.warn(e); body.append(LS.notice('⚠️', 'Something went wrong', 'This app could not start on this device.')); }
     LS.bumpIdle(); route();
   };
+  LS.backLabel = (t) => { const s = $('#appBack span'); if (s) s.textContent = t; };
   LS.appBack = function () {
     if (current && current.app.back && current.app.back()) return;
     LS.closeApp();

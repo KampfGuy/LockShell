@@ -21,7 +21,7 @@
     open(body, actions, which) {
       function hub() {
         clean(); inGame = false;
-        LS.$('#appTitle').textContent = 'Games'; actions.innerHTML = '';
+        LS.$('#appTitle').textContent = 'Games'; actions.innerHTML = ''; LS.backLabel('Home');
         body.innerHTML = ''; body.className = 'app-body scroll';
         const g = el('div', { class: 'game-grid' });
         Object.keys(GAMES).forEach((k) => {
@@ -35,7 +35,7 @@
       function play(k) {
         clean(); inGame = true;
         const G = GAMES[k];
-        LS.$('#appTitle').textContent = G.name; actions.innerHTML = '';
+        LS.$('#appTitle').textContent = G.name; actions.innerHTML = ''; LS.backLabel('Games');
         body.innerHTML = ''; body.className = 'app-body';
         G.run(body, actions);
       }

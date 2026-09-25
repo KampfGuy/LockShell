@@ -42,7 +42,7 @@
   }
 
   LS.register('camera', {
-    title: 'Camera', icon: 'camera', color: 'linear-gradient(135deg,#475569,#1e293b)',
+    title: 'Camera', icon: 'camera', color: 'linear-gradient(135deg,#475569,#1e293b)', darkBar: true,
     open(body, actions) {
       body.style.background = '#000';
       const wrap = el('div', { class: 'cam-wrap' });
@@ -56,7 +56,7 @@
 
       function showStart() {
         wrap.innerHTML = '';
-        wrap.append(LS.notice('📷', 'Camera', 'Tap below to start the camera. Your photos stay on this phone.', { label: 'Start camera', onclick: start }));
+        wrap.append(LS.notice('📷', 'Camera', 'Starting the camera… Your photos stay on this phone.', { label: 'Start camera', onclick: start }));
         wrap.querySelector('.notice').style.color = '#fff';
         shutter.disabled = true;
       }
@@ -94,6 +94,7 @@
       };
       body.append(wrap, controls, strip);
       showStart(); renderThumbs(strip);
+      start(); // start right away; the button stays as a retry if it fails
     },
     close: stop
   });

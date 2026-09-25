@@ -41,6 +41,7 @@
     revoke();
     const top = stack[stack.length - 1];
     LS.$('#appTitle').textContent = top.title;
+    LS.backLabel(stack.length > 1 ? 'Settings' : 'Home');
     root.innerHTML = ''; root.scrollTop = 0;
     const page = el('div', { class: 'pad set-page' });
     root.append(page);

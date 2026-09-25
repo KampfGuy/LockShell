@@ -10,7 +10,7 @@
       async function showList() {
         inEditor = false;
         if (flush) { await flush(); flush = null; }
-        LS.$('#appTitle').textContent = 'Notes';
+        LS.$('#appTitle').textContent = 'Notes'; LS.backLabel('Home');
         actions.innerHTML = '';
         body.innerHTML = ''; body.className = 'app-body scroll';
         const list = el('div', { class: 'list' });
@@ -25,7 +25,7 @@
       function edit(note) {
         inEditor = true;
         note = note || { id: LS.uid(), created: Date.now(), updated: Date.now(), title: '', body: '' };
-        LS.$('#appTitle').textContent = note.title || 'New note';
+        LS.$('#appTitle').textContent = note.title || 'New note'; LS.backLabel('Notes');
         body.innerHTML = ''; body.className = 'app-body';
         const ind = el('span', { class: 'saved-ind', text: '' });
         const title = el('input', { type: 'text', placeholder: 'Title', value: note.title, maxlength: 120, autocomplete: 'off' });

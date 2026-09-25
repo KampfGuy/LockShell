@@ -447,3 +447,19 @@ div.set-row:active{background:var(--card)}
 #appScreen.calc-mode .back-btn svg{stroke:#ff9f0a}
 .dpad{grid-template-columns:repeat(3,78px);grid-template-rows:repeat(2,64px);gap:10px;margin-top:16px}
 .dpad button{font-size:24px;border-radius:18px}
+#appScreen.dark-bar .app-bar{background:#000;border-bottom-color:#000}
+#appScreen.dark-bar .app-bar h1{color:#fff}
+#appScreen.dark-bar .back-btn{color:#ff9f0a}
+#appScreen.dark-bar .back-btn svg{stroke:#ff9f0a}
+#appScreen.dark-bar .app-body{background:#000}
+.cam-wrap{display:flex;flex-direction:column}
+.cam-wrap video{position:absolute;inset:0}
+.cam-wrap .notice h3{color:#fff}
+.g2048{grid-template-rows:repeat(4,1fr)}
+.fab{position:fixed}
+.draw-bar{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px calc(10px + var(--sab));overflow:visible}
+.draw-colors{display:flex;justify-content:space-between;gap:4px}
+.draw-colors .swatch{width:30px;height:30px;border-width:2px}
+.draw-tools{display:flex;align-items:center;gap:8px}
+.draw-tools .pill-btn{padding:8px 12px;min-height:36px}
+.app-body:has(.draw-bar){padding-bottom:0}

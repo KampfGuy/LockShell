@@ -66,10 +66,10 @@
   LS.CalcEngine = CalcEngine;
 
   LS.register('calculator', {
-    title: 'Calculator', icon: 'calc', color: 'linear-gradient(135deg,#8e8e93,#3a3a3c)',
+    title: 'Calculator', icon: 'calc', color: 'linear-gradient(135deg,#8e8e93,#3a3a3c)', darkBar: true,
     open(body) {
       const E = CalcEngine();
-      body.classList.add('calc-body'); LS.$('#appScreen').classList.add('calc-mode');
+      body.classList.add('calc-body');
       const disp = el('div', { class: 'calc-display', 'aria-live': 'polite' });
       const keys = el('div', { class: 'calc-keys' });
       const layout = [['ac', 'fn', 'AC'], ['neg', 'fn', '+/−'], ['pct', 'fn', '%'], ['/', 'op', '÷'],
@@ -102,7 +102,7 @@
       document.addEventListener('keydown', onKey); this._off = () => document.removeEventListener('keydown', onKey);
       render();
     },
-    close() { if (this._off) this._off(); LS.$('#appScreen').classList.remove('calc-mode'); }
+    close() { if (this._off) this._off(); }
   });
 
   /* ======================= TIMER + STOPWATCH ======================= */
@@ -224,14 +224,15 @@
       const wrap = el('div', { class: 'draw-wrap' });
       const cv = el('canvas', { 'aria-label': 'Drawing canvas' });
       wrap.append(cv);
-      const bar = el('div', { class: 'draw-bar' });
-      body.append(wrap, bar);
+      const bar = el('div', { class: 'draw-colors' }), bar2 = el('div', { class: 'draw-tools' });
+      body.append(wrap, el('div', { class: 'draw-bar' }, bar, bar2));
       const g = cv.getContext('2d');
       let color = '#1c1c1e', size = 8, drawing = false, lastPt = null, undo = [], dpr = 1;
       const COLORS = ['#1c1c1e', '#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#007aff', '#af52de', '#ff2d55', '#8e5a2b', '#ffffff'];
       COLORS.forEach((c) => bar.append(el('button', { class: 'swatch' + (c === color ? ' on' : ''), style: { background: c }, 'aria-label': c === '#ffffff' ? 'Eraser (white)' : 'Color', onclick: (e) => { color = c; bar.querySelectorAll('.swatch').forEach((s) => s.classList.toggle('on', s === e.currentTarget)); } })));
-      [[3, 5], [8, 9], [18, 14]].forEach(([s, d]) => bar.append(el('button', { class: 'size-btn' + (s === size ? ' on' : ''), 'aria-label': 'Brush ' + s, onclick: (e) => { size = s; bar.querySelectorAll('.size-btn').forEach((b) => b.classList.toggle('on', b === e.currentTarget)); } }, el('i', { style: { width: d + 'px', height: d + 'px' } }))));
-      actions.append(
+      [[3, 5], [8, 9], [18, 14]].forEach(([s, d]) => bar2.append(el('button', { class: 'size-btn' + (s === size ? ' on' : ''), 'aria-label': 'Brush ' + s, onclick: (e) => { size = s; bar2.querySelectorAll('.size-btn').forEach((b) => b.classList.toggle('on', b === e.currentTarget)); } }, el('i', { style: { width: d + 'px', height: d + 'px' } }))));
+      bar2.append(el('span', { class: 'grow' }));
+      bar2.append(
         el('button', { class: 'pill-btn', text: 'Undo', onclick: () => { const u = undo.pop(); if (u) g.putImageData(u, 0, 0); } }),
         el('button', { class: 'pill-btn danger', text: 'Clear', onclick: async () => { if (await LS.confirm('Clear drawing?', 'This erases the whole canvas.', 'Clear', true)) { snap(); fillWhite(); } } }),
         el('button', { class: 'pill-btn', text: 'Save', onclick: save }));
