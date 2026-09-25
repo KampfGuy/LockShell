@@ -52,9 +52,11 @@
       'get out of this app', 'get out of the app', 'exit the app', 'exit this app', 'leave the app', 'leave this app', 'close the app', 'close this app',
       'escape the app', 'escape this app', 'quit the app', 'break out of', 'get past the lock', 'get around the lock', 'turn off the lock',
       'disable the lock', 'remove the lock', 'unlock the phone', 'unlock this phone', 'unlock the iphone', 'unlock my phone', 'real home screen',
-      'phone settings', 'iphone settings', 'developer code', 'dev code', 'developer mode', 'dev mode', 'developer tool*', 'dev tool*', 'developer menu', 'developer setting*', 'open safari', 'open chrome', 'open youtube', 'open tiktok', 'open instagram', 'open snapchat', 'app store',
+      'phone settings', 'iphone settings', 'developer code', 'dev code', 'developer mode', 'dev mode', 'developer tool*', 'dev tool*', 'developer menu', 'developer setting*', 'open safari', 'open chrome', 'real youtube', 'youtube search', 'search youtube', 'youtube kids app', 'open tiktok', 'open instagram', 'open snapchat', 'app store',
       'vpn', 'vpns', 'proxy', 'proxies', 'incognito', 'unblock*', 'blocked site*', 'blocked website*', 'blocked page*', 'blocked article*', 'safe search', 'safesearch',
-      'content filter*', 'web filter*', 'the filter', 'shell filter', 'screen time', 'parental control*', 'turn off restrictions', 'adult websites', 'adult sites'
+      'content filter*', 'web filter*', 'the filter', 'shell filter', 'screen time', 'parental control*', 'turn off restrictions', 'adult websites', 'adult sites',
+      'time limit*', 'youtube limit*', 'more screen time', 'extra screen time', 'more youtube time', 'extra youtube time', 'unlimited youtube',
+      'turn off bedtime', 'skip bedtime', 'no bedtime', 'stay up late', 'parent button', 'parent code'
     ] },
     { id: 'violence', terms: [
       'kill', 'kills', 'kil', 'killing', 'killer', 'murder*', 'stab*', 'shoot', 'shooting', 'shooter', 'gun', 'guns', 'gunfire', 'rifle*', 'pistol*',
@@ -103,6 +105,10 @@
     { id: 'violence', re: /\bhow (do i|to|can i|could i|would i) (hurt|harm|poison|kill|attack)\b/ },
     { id: 'bypass', re: /\b(unlock|turn off|disable|bypass|get past|get around|skip|hack|break|remove) (the |this |my |your )?(lock|lockscreen|lock screen|screen lock|kiosk|lockshell|shellos|filter|web filter|content filter|parental controls?)\b/ },
     { id: 'bypass', re: /\bwhat(s| is) the (code|pin|passcode|password)\b/ },
+    { id: 'bypass', re: /\b(turn off|disable|remove|skip|stop|end|get around|get past|bypass|reset|change|cheat|trick|beat|extend|cancel|break|hack) (the |my |this |your |our )?(time limit|daily limit|limit|limits|youtube limit|youtube timer|screen time|bedtime|rest time|timer on youtube)\b/ },
+    { id: 'bypass', re: /\b(more|extra|longer|unlimited|infinite|endless) (youtube|screen|video|phone|ipad|tablet|play|shellos) ?time\b/ },
+    { id: 'bypass', re: /\b(watch|see|play|open|find|get) (any|other|all|every|non approved|unapproved|different) (youtube )?videos? (that|not|which|from) /  },
+    { id: 'bypass', re: /\b(unblock|allow|approve|add) (a |the |this |that |more |new )?(youtube )?videos?\b/ },
     { id: 'hacking', re: /\b(hack|break) into\b/ },
     { id: 'hate', re: /\bi hate (all |every )?[a-z]+ (people|kids|girls|boys)\b/ }
   ];
@@ -112,7 +118,7 @@
     violence: "I can't help with anything that could hurt someone. Want to play a game or hear a fun fact instead?",
     drugs: "I can't help with that one. For health questions, a trusted adult or a doctor is the best person to ask.",
     hacking: "I can't help with hacking or breaking into things. I can do math, jokes, trivia and lots more!",
-    bypass: "I can't help with getting past the lock, the passcode, the web filter, or Guided Access. It's set up on purpose. Ask the phone's owner if you need something!",
+    bypass: "I can't help with getting past the lock, the passcode, the web filter, time limits, or Guided Access. They're set up on purpose. Ask the phone's owner if you need something!",
     hate: "Let's keep it kind. I won't say or help with hurtful things.",
     illegal: "I can't help with that. Try asking me something else!"
   };
@@ -340,6 +346,10 @@
     ['What building has the most stories?', 'The library!', ['library']]
   ];
   const APPS = [
+    { re: /\b(youtube|you tube|videos?|youtube ?com)\b/, app: 'youtube', name: 'YouTube' },
+    { re: /\b(photos|photo album|gallery|my pictures|my photos|my drawings)\b/, app: 'photos', name: 'Photos' },
+    { re: /\b(stories|story|storybook|story app)\b/, app: 'stories', name: 'Stories' },
+    { re: /\b(quiz|trivia)\b/, app: 'quiz', name: 'Quiz' },
     { re: /\b(calculator|calc)\b/, app: 'calculator', name: 'Calculator' },
     { re: /\b(camera|picture|photo|selfie|pic)\b/, app: 'camera', name: 'Camera' },
     { re: /\b(voice recorder|recorder|voice memo|record my voice|record audio|recording)\b/, app: 'recorder', name: 'Voice Recorder' },
@@ -363,7 +373,9 @@
     { re: /\bbreakout\b|\bbrick breaker\b|\bbricks\b/, arg: 'breakout', name: 'Breakout' },
     { re: /\bminesweeper\b|\bmines\b/, arg: 'mines', name: 'Minesweeper' },
     { re: /\bconnect (four|4)\b|\bfour in a row\b/, arg: 'connect4', name: 'Connect Four' },
-    { re: /\bsky ?hop\b|\bflappy\b/, arg: 'skyhop', name: 'Sky Hop' }
+    { re: /\bsky ?hop\b|\bflappy\b/, arg: 'skyhop', name: 'Sky Hop' },
+    { re: /\bword ?search\b|\bword find\b/, arg: 'wordsearch', name: 'Word Search' },
+    { re: /\bsimon( says)?\b|\bcolor memory\b/, arg: 'simon', name: 'Simon' }
   ];
 
   /* ======================= STYLES ======================= */
@@ -404,7 +416,7 @@
   };
 
   /* ======================= REPLY ======================= */
-  const HELP = 'I can: tell the time and date 🕒, do math ➗, convert units (like "5 miles to km" or "70 F to C") 📏, explain words 📖, tell jokes 😂, fun facts 🤓 and riddles 🧩, flip a coin 🪙 or roll dice 🎲, and open apps: "open calculator", "play snake", "take a picture", "what\'s the weather", or "search Wikipedia for volcanoes".';
+  const HELP = 'I can: tell the time and date 🕒, do math ➗, convert units (like "5 miles to km" or "70 F to C") 📏, explain words 📖, tell jokes 😂, fun facts 🤓 and riddles 🧩, flip a coin 🪙 or roll dice 🎲, and open apps: "open calculator", "play snake", "open YouTube", "tell me a story", "start a quiz", "take a picture", "what\'s the weather", or "search Wikipedia for volcanoes".';
 
   function reply(input, opts) {
     opts = opts || {};
@@ -449,7 +461,11 @@
       }
       if (has(/\bhow are you\b|\bhow r u\b|\bhow are u\b|\bhows it going\b|\bhow do you feel\b|\bwhats up\b/)) return { text: pick(S.how) };
       if (has(/\b(whats|what is) your name\b|\bwho are you\b/)) return { text: "I'm Buddy, your helper on this phone! I live right here, no internet needed." };
-      if (has(/\b(what is|whats|tell me about) shell ?os\b/)) return { text: 'ShellOS is the kid-safe home screen on this phone. It has apps, games, me, and the Shell browser with safe Wikipedia and kid websites.' };
+      if (has(/\b(what is|whats|tell me about) shell ?os\b/)) return { text: 'ShellOS is the kid-safe home screen on this phone. It has apps, games, stories, a quiz, YouTube with approved videos, me, and the Shell browser with safe Wikipedia and kid websites.' };
+      if (has(/\byoutube\b/) && has(/\b(search|find|look up|look for|type)\b/)) return { text: 'YouTube here has videos picked just for you, so there is no search. Opening YouTube so you can pick one!', action: { type: 'open', app: 'youtube' } };
+      if (has(/\b(tell|read) me a story\b|\bstory ?time\b|\bbedtime story\b|\bread (me )?a book\b/)) return { text: S.open('Stories') + ' 📖', action: { type: 'open', app: 'stories' } };
+      if (has(/\b(quiz me|give me a quiz|start a quiz|play (a )?quiz|trivia game|ask me (some )?(trivia|questions))\b/)) return { text: S.open('Quiz') + ' 🧠', action: { type: 'open', app: 'quiz' } };
+      if (has(/\b(watch|see|show me) (a |some )?(videos?|youtube|cartoons?|shows?)\b/)) return { text: S.open('YouTube') + ' ▶️', action: { type: 'open', app: 'youtube' } };
       const sq = raw.match(/^\s*(?:search|look up)\s+(?:on\s+)?(?:wikipedia|shell)\s+(?:for\s+)?(.{2,80})$/i) || raw.match(/^\s*look up\s+(.{2,80}?)\s+(?:on|in)\s+(?:wikipedia|shell)\s*$/i);
       if (sq) return { text: 'Okay! Searching Shell for "' + sq[1].trim() + '".', action: { type: 'open', app: 'shell', arg: { q: sq[1].trim() } } };
       if (has(/\bwho (made|created|built) you\b/)) return { text: 'I was built as part of ShellOS, and I run completely on this phone.' };

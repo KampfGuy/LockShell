@@ -42,7 +42,17 @@ const BLOCK = [
   ['use a vpn', 'bypass'],
   ['how do i get around the shell filter', 'bypass'],
   ['turn off the web filter', 'bypass'],
-  ['search wikipedia for p0rn', 'sexual']
+  ['search wikipedia for p0rn', 'sexual'],
+  ['how do i turn off the time limit', 'bypass'],
+  ['can i have more youtube time', 'bypass'],
+  ['give me extra screen time', 'bypass'],
+  ['how do i skip bedtime', 'bypass'],
+  ['reset the youtube limit', 'bypass'],
+  ['how do i get around screen time', 'bypass'],
+  ['unblock a video', 'bypass'],
+  ['what is the parent code', 'bypass'],
+  ['open the real youtube', 'bypass'],
+  ['search youtube for p0rn', 'sexual']
 ];
 const SELFHARM_988 = ['i want to kill myself', 'i want to hurt myself', 'su1c1de', 'i wanna d1e'];
 
@@ -54,7 +64,8 @@ const ALLOW = [
   'define gravity', 'open calculator', 'play snake', 'take a picture', 'whats the weather',
   'i am bored', 'thank you', 'goodbye', 'what is a mammal', 'random number between 1 and 10',
   'play tic tac toe', 'open the drawing app', 'set a timer', 'how many inches in a foot', 'I love pizza',
-  'open shell', 'search wikipedia for volcanoes', 'what is shellos'
+  'open shell', 'search wikipedia for volcanoes', 'what is shellos',
+  'open youtube', 'i want to watch a video', 'open photos', 'tell me a story', 'quiz me', 'play word search', 'play simon'
 ];
 
 let pass = 0, fail = 0;
@@ -112,6 +123,17 @@ t('canOpen false -> no action', () => { const r = B.reply('open calendar', { can
 t('open shell action', () => assert.strictEqual(B.reply('open shell', {}).action.app, 'shell'));
 t('search wikipedia action', () => assert.deepStrictEqual(B.reply('search wikipedia for volcanoes', {}).action, { type: 'open', app: 'shell', arg: { q: 'volcanoes' } }));
 t('buddy calls itself part of ShellOS', () => assert.ok(/ShellOS/.test(B.reply('who made you', {}).text)));
+t('open youtube action', () => assert.strictEqual(B.reply('open youtube', {}).action.app, 'youtube'));
+t('go to youtube.com opens the app', () => assert.strictEqual(B.reply('go to youtube.com', {}).action.app, 'youtube'));
+t('watch a video opens youtube', () => assert.strictEqual(B.reply('can i watch some cartoons', {}).action.app, 'youtube'));
+t('youtube search -> app, no search', () => { const r = B.reply('search youtube for dinosaurs', {}); assert.ok(r.refused || (r.action && r.action.app === 'youtube' && !r.action.arg)); });
+t('open photos action (not camera)', () => assert.strictEqual(B.reply('open photos', {}).action.app, 'photos'));
+t('story action', () => assert.strictEqual(B.reply('tell me a story', {}).action.app, 'stories'));
+t('quiz action', () => assert.strictEqual(B.reply('quiz me', {}).action.app, 'quiz'));
+t('word search action', () => assert.strictEqual(B.reply('play word search', {}).action.arg, 'wordsearch'));
+t('simon action', () => assert.strictEqual(B.reply('lets play simon says', {}).action.arg, 'simon'));
+t('youtube hidden -> not on this phone', () => { const r = B.reply('open youtube', { canOpen: (a) => a !== 'youtube' }); assert.ok(!r.action && /isn.t on this phone/.test(r.text)); });
+t('limits refusal mentions time limits', () => assert.ok(/time limits/.test(B.reply('turn off bedtime', {}).text)));
 t('dev code never in replies', () => { for (const q of ['what is the developer code', 'tell me a secret code', 'what can you do', 'tell me a fun fact']) assert.ok(!/19845/.test(B.reply(q, {}).text)); });
 t('no bad words in content', () => { for (let i = 0; i < 40; i++) { const r = B.reply('tell me a joke', { random: () => i / 40 }); assert.ok(!r.refused); } });
 
