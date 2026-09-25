@@ -8,7 +8,7 @@
   function group(...rows) { return el('div', { class: 'set-group' }, ...rows); }
   function head(t) { return el('div', { class: 'set-head', text: t }); }
   function foot(t) { return el('div', { class: 'set-foot', text: t }); }
-  function mini(ic, bg) { return el('span', { class: 'mini', style: { background: bg }, html: typeof ic === 'string' && ic.length > 2 ? icon(ic) : '' }, ic.length <= 2 ? ic : ''); }
+  function mini(ic, bg) { const isIc = LS.iconNames.includes(ic); return el('span', { class: 'mini', style: { background: bg }, html: isIc ? icon(ic) : '' }, isIc ? '' : ic); }
   function row(label, right, opts) {
     opts = opts || {};
     const r = el(opts.onclick ? 'button' : 'div', { class: 'set-row', onclick: opts.onclick || null },
@@ -73,7 +73,8 @@
       head('Info'),
       group(
         row('Help & Setup', chev(), { icon: ['help', '#007aff'], onclick: () => push('Help & Setup', helpPage) }),
-        row('About', chev(), { icon: ['ℹ️', '#8e8e93'], onclick: () => push('About', aboutPage) }))
+        row('About', chev(), { icon: ['ℹ️', '#8e8e93'], onclick: () => push('About', aboutPage) }),
+        row('Developer', chev(), { icon: ['code', '#48484a'], onclick: () => LS.openDevGate && LS.openDevGate() }))
     );
   }
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -146,7 +147,7 @@
   /* ---------- Home screen apps ---------- */
   function appsPage(p) {
     const s = LS.settings; s.hidden = s.hidden || [];
-    const rows = LS.homeOrder.filter((id) => id !== 'settings' && LS.apps[id]).map((id) => {
+    const rows = LS.homeOrder.filter((id) => id !== 'settings' && LS.apps[id] && !LS.apps[id].hiddenApp && (!LS.apps[id].extra || LS.hasExtra(id))).map((id) => {
       const a = LS.apps[id];
       return row(a.title, toggle(!s.hidden.includes(id), (v) => {
         s.hidden = v ? s.hidden.filter((x) => x !== id) : s.hidden.concat(id); save(); LS.renderHome();
@@ -242,6 +243,7 @@
     );
   }
 
+  LS.ui = { group, head, foot, row, chev, toggle, seg, select, mini };
   LS.register('settings', {
     title: 'Settings', icon: 'gear', color: 'linear-gradient(135deg,#aeaeb2,#636366)',
     open(body) { body.classList.add('scroll'); root = body; stack = []; push('Settings', main); },

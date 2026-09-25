@@ -35,7 +35,7 @@
     opts = opts || {};
     text = String(text || '').trim();
     if (!text) return;
-    const r = window.BuddyBrain.reply(text, { style: LS.settings.buddy.style, ctx });
+    const r = window.BuddyBrain.reply(text, { style: LS.settings.buddy.style, ctx, canOpen: (app, arg) => LS.appAvailable(app) && (app !== 'games' || !arg || LS.gameAvailable(arg)) });
     history.push({ who: 'me', text }, { who: 'bot', text: r.text, refused: !!r.refused });
     if (ui) { addBubble('me', text); addBubble('bot', r.text, r.refused); }
     if (opts.speak !== false) LS.speak(r.text, opts.forceSpeak);

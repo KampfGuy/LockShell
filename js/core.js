@@ -2,6 +2,18 @@
 (function () {
   'use strict';
   const LS = (window.LS = {});
+
+  /* ---------- Error log (ring buffer, shown in Developer Tools) ---------- */
+  LS.errlog = [];
+  const logErr = (level, msg) => { LS.errlog.push({ t: Date.now(), level, msg: String(msg).slice(0, 500) }); if (LS.errlog.length > 100) LS.errlog.shift(); };
+  LS.logErr = logErr;
+  window.addEventListener('error', (e) => logErr('error', (e.message || 'Error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : '')));
+  window.addEventListener('unhandledrejection', (e) => logErr('error', 'Unhandled promise: ' + ((e.reason && (e.reason.message || e.reason)) || '')));
+  ['error', 'warn'].forEach((lv) => {
+    const orig = console[lv] && console[lv].bind(console);
+    if (!orig) return;
+    console[lv] = function () { try { logErr(lv, Array.from(arguments).map((a) => (a && a.message) || (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')); } catch (e) {} return orig.apply(null, arguments); };
+  });
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   LS.$ = $; LS.$$ = $$;
@@ -50,8 +62,13 @@
     image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
     key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',
     chevron: '<path d="M9 6l6 6-6 6"/>',
-    x: '<path d="M6 6l12 12M18 6L6 18"/>'
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+    code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/>',
+    piano: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16M12 4v16M16 4v16"/><path d="M6.5 4v8h3V4M14.5 4v8h3V4" fill="#fff"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.2h.01M12 17.2h.01"/>',
+    dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" stroke-width="3"/>'
   };
+  LS.iconNames = Object.keys(P);
   LS.icon = (name, extra) => `<svg viewBox="0 0 24 24" aria-hidden="true" ${extra || ''}>${P[name] || ''}</svg>`;
 
   /* ---------- Settings ---------- */
@@ -59,7 +76,7 @@
   const DEFAULTS = {
     theme: 'light', idleMin: 2, hidden: [], weatherUnit: 'F',
     buddy: { speak: true, voiceURI: '', rate: 1, pitch: 1, style: 'friendly' },
-    wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null
+    wakeWord: false, micPerm: 'unknown', lastWeather: null, lastPlace: null, manualPlace: false, extras: []
   };
   LS.settings = JSON.parse(JSON.stringify(DEFAULTS));
   try {
@@ -246,12 +263,19 @@
       render(); ov.hidden = false;
     });
   };
-  LS.requirePin = (why) => LS.pinPad({ mode: 'verify', title: 'Enter passcode', sub: why || '' });
+  LS.devActive = false; // true only while Developer Tools is open; passcode prompts are skipped then
+  LS.requirePin = (why) => (LS.devActive ? Promise.resolve(true) : LS.pinPad({ mode: 'verify', title: 'Enter passcode', sub: why || '' }));
   LS.onUnlock = [];
 
   /* ---------- App registry + router ---------- */
   LS.apps = {};
-  LS.homeOrder = ['settings', 'games', 'buddy', 'camera', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light'];
+  LS.homeOrder = ['settings', 'games', 'buddy', 'camera', 'recorder', 'notes', 'weather', 'calculator', 'timer', 'draw', 'light', 'piano', 'calendar', 'dice'];
+  // Optional apps/games that are hidden until added in Developer Tools.
+  LS.EXTRAS = { apps: ['piano', 'calendar', 'dice'], games: ['breakout', 'mines', 'connect4', 'skyhop'] };
+  LS.hasExtra = (id) => (LS.settings.extras || []).includes(id);
+  LS.setExtra = (id, on) => { const x = (LS.settings.extras || []).filter((k) => k !== id); if (on) x.push(id); LS.settings.extras = x; LS.saveSettings(); };
+  // Can this app be opened from the home screen / Buddy right now?
+  LS.appAvailable = (id) => { const a = LS.apps[id]; if (!a || a.hiddenApp) return false; if (a.extra && !LS.hasExtra(id)) return false; return id === 'settings' || !(LS.settings.hidden || []).includes(id); };
   LS.onRoute = [];
   const route = () => LS.onRoute.forEach((f) => { try { f(); } catch (e) { console.warn(e); } });
   LS.register = (id, def) => { LS.apps[id] = def; };

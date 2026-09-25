@@ -52,7 +52,7 @@
       'get out of this app', 'get out of the app', 'exit the app', 'exit this app', 'leave the app', 'leave this app', 'close the app', 'close this app',
       'escape the app', 'escape this app', 'quit the app', 'break out of', 'get past the lock', 'get around the lock', 'turn off the lock',
       'disable the lock', 'remove the lock', 'unlock the phone', 'unlock this phone', 'unlock the iphone', 'unlock my phone', 'real home screen',
-      'phone settings', 'iphone settings', 'open safari', 'open chrome', 'open youtube', 'open tiktok', 'open instagram', 'open snapchat', 'app store'
+      'phone settings', 'iphone settings', 'developer code', 'dev code', 'developer mode', 'dev mode', 'developer tool*', 'dev tool*', 'developer menu', 'developer setting*', 'open safari', 'open chrome', 'open youtube', 'open tiktok', 'open instagram', 'open snapchat', 'app store'
     ] },
     { id: 'violence', terms: [
       'kill', 'kills', 'kil', 'killing', 'killer', 'murder*', 'stab*', 'shoot', 'shooting', 'shooter', 'gun', 'guns', 'gunfire', 'rifle*', 'pistol*',
@@ -346,6 +346,9 @@
     { re: /\b(stopwatch|timer)\b/, app: 'timer', name: 'Timer' },
     { re: /\b(drawing|draw|paint|sketch)\b/, app: 'draw', name: 'Drawing' },
     { re: /\b(flashlight|torch|light)\b/, app: 'light', name: 'Light' },
+    { re: /\bpiano\b|\bkeyboard app\b/, app: 'piano', name: 'Piano' },
+    { re: /\bcalendar\b/, app: 'calendar', name: 'Calendar' },
+    { re: /\bdice( and coin)?( app)?\b|\bcoin app\b/, app: 'dice', name: 'Dice & Coin' },
     { re: /\bsettings?\b/, app: 'settings', name: 'Settings' },
     { re: /\bgames?\b/, app: 'games', name: 'Games' }
   ];
@@ -353,7 +356,11 @@
     { re: /\bsnake\b/, arg: 'snake', name: 'Snake' },
     { re: /\b2048\b/, arg: 'g2048', name: '2048' },
     { re: /\btic ?tac ?toe\b|\bnoughts\b|\bx and o\b/, arg: 'ttt', name: 'Tic-Tac-Toe' },
-    { re: /\bmemory\b|\bmatching\b/, arg: 'memory', name: 'Memory' }
+    { re: /\bmemory\b|\bmatching\b/, arg: 'memory', name: 'Memory' },
+    { re: /\bbreakout\b|\bbrick breaker\b|\bbricks\b/, arg: 'breakout', name: 'Breakout' },
+    { re: /\bminesweeper\b|\bmines\b/, arg: 'mines', name: 'Minesweeper' },
+    { re: /\bconnect (four|4)\b|\bfour in a row\b/, arg: 'connect4', name: 'Connect Four' },
+    { re: /\bsky ?hop\b|\bflappy\b/, arg: 'skyhop', name: 'Sky Hop' }
   ];
 
   /* ======================= STYLES ======================= */
@@ -412,7 +419,11 @@
     const safe = checkSafety(raw);
     if (safe.blocked) { ctx.riddle = null; return { text: safe.message, refused: true, category: safe.category }; }
 
-    const out = build(raw, safe.normalized);
+    let out = build(raw, safe.normalized);
+    // Only open apps/games that are actually on this phone (optional ones must be added first).
+    if (out.action && out.action.type === 'open' && opts.canOpen && !opts.canOpen(out.action.app, out.action.arg)) {
+      out = { text: style === 'funny' ? "Hmm, I looked everywhere and that one isn't on this phone! 🔍" : "Sorry, that one isn't on this phone right now." };
+    }
     // Output guard: never show or speak anything the filter would block.
     if (!out.refused && out.text && checkSafety(out.text).blocked) return { text: pick(S.fallback), refused: false };
     return out;

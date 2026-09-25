@@ -16,6 +16,8 @@
   const toUnit = (c) => (LS.settings.weatherUnit === 'C' ? c : c * 9 / 5 + 32);
   const deg = (c) => Math.round(toUnit(c)) + '°';
   let gen = 0;
+  LS.fetchForecast = (lat, lon) => fetchForecast(lat, lon);
+  LS.geoSearch = async (q) => { const r = await fetch(GEO + '?' + new URLSearchParams({ name: q, count: '6', language: 'en', format: 'json' })); if (!r.ok) throw new Error('HTTP ' + r.status); return (await r.json()).results || []; };
 
   async function fetchForecast(lat, lon) {
     const q = new URLSearchParams({
@@ -68,7 +70,7 @@
             el('span', { class: 'wx-hi', text: deg(day.temperature_2m_max[i]) })));
         }
         wrap.append(hero, days, el('div', { class: 'wx-meta', text: (note ? note + ' · ' : '') + 'Updated ' + LS.fmtDate(c.at) + ' · Open-Meteo' }),
-          el('button', { class: 'ghost-btn', text: '📍 Use my location', onclick: () => { shown = false; locate(); } }));
+          el('button', { class: 'ghost-btn', text: '📍 Use my location', onclick: () => { shown = false; LS.settings.manualPlace = false; LS.saveSettings(); locate(); } }));
       }
       async function load(lat, lon, place) {
         status('⛅', 'Loading weather…', place ? place : 'Getting the forecast');
@@ -115,14 +117,15 @@
             if (!d.results || !d.results.length) { list.append(el('p', { class: 'muted', text: 'No places found. Check the spelling and try again.' })); return; }
             d.results.forEach((p) => {
               const label = [p.name, p.admin1, p.country_code || p.country].filter(Boolean).join(', ');
-              list.append(el('button', { class: 'item', onclick: () => load(p.latitude, p.longitude, p.name) }, el('div', { class: 'meta' }, el('b', { text: p.name }), el('small', { text: label }))));
+              list.append(el('button', { class: 'item', onclick: () => { LS.settings.manualPlace = true; LS.saveSettings(); load(p.latitude, p.longitude, p.name); } }, el('div', { class: 'meta' }, el('b', { text: p.name }), el('small', { text: label }))));
             });
           } catch (e) { list.innerHTML = ''; list.append(el('p', { class: 'muted', text: "Search didn't work. Check your internet connection and try again." })); }
         }
       }
       const c = LS.settings.lastWeather;
       if (c && c.data) render(c, 'Saved');
-      locate();
+      const lp = LS.settings.lastPlace;
+      if (LS.settings.manualPlace && lp && lp.lat != null) load(lp.lat, lp.lon, lp.place); else locate();
     },
     close() { gen++; }
   });

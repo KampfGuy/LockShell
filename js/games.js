@@ -16,6 +16,11 @@
     memory: { name: 'Memory', emoji: '🧠', desc: 'Match the pairs', bg: 'linear-gradient(135deg,#ec4899,#be185d)', run: memory }
   };
 
+  // Other files can add games (extra ones only show once added in Developer Tools).
+  LS.addGame = (key, def) => { GAMES[key] = def; };
+  LS.gameAvailable = (key) => !!GAMES[key] && (!GAMES[key].extra || LS.hasExtra(key));
+  LS.gameBest = best; LS.gameBestLow = bestLow;
+
   LS.register('games', {
     title: 'Games', icon: 'games', color: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
     open(body, actions, which) {
@@ -24,9 +29,9 @@
         LS.$('#appTitle').textContent = 'Games'; actions.innerHTML = ''; LS.backLabel('Home');
         body.innerHTML = ''; body.className = 'app-body scroll';
         const g = el('div', { class: 'game-grid' });
-        Object.keys(GAMES).forEach((k) => {
+        Object.keys(GAMES).filter(LS.gameAvailable).forEach((k) => {
           const G = GAMES[k];
-          const hs = k === 'memory' ? (bestLow('memory') ? 'Best: ' + bestLow('memory') + ' moves' : 'No best yet') : k === 'ttt' ? 'Wins: ' + best('tttwins') : 'Best: ' + best(k === 'g2048' ? '2048' : k);
+          const hs = G.hs ? G.hs() : k === 'memory' ? (bestLow('memory') ? 'Best: ' + bestLow('memory') + ' moves' : 'No best yet') : k === 'ttt' ? 'Wins: ' + best('tttwins') : 'Best: ' + best(k === 'g2048' ? '2048' : k);
           g.append(el('button', { class: 'game-card', style: { background: G.bg }, onclick: () => play(k) },
             el('div', { class: 'e', text: G.emoji }), el('div', null, el('b', { text: G.name }), el('small', { text: G.desc }), el('small', { class: 'hs', text: hs }))));
         });
@@ -40,7 +45,7 @@
         G.run(body, actions);
       }
       hubFn = hub;
-      if (which && GAMES[which]) play(which); else hub();
+      if (which && LS.gameAvailable(which)) play(which); else hub();
     },
     back() { if (inGame && hubFn) { hubFn(); return true; } return false; },
     close() { clean(); inGame = false; }

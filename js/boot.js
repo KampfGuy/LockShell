@@ -59,6 +59,7 @@
       setTimeout(() => { if (Date.now() >= cooldown) { fails = 3; sub.textContent = 'Enter passcode'; sub.classList.remove('err'); } }, 30100);
     } else sub.textContent = 'Wrong passcode. Try again.';
   }
+  LS.resetLockout = () => { fails = 0; cooldown = 0; if (LS.isLocked()) LS.resetLockEntry(); };
   function press(k) {
     primeSpeech();
     if (checking || Date.now() < cooldown) return;
@@ -110,6 +111,7 @@
     const hidden = LS.settings.hidden || [];
     LS.homeOrder.forEach((id) => {
       const a = LS.apps[id]; if (!a) return;
+      if (a.hiddenApp || (a.extra && !LS.hasExtra(id))) return;
       if (id !== 'settings' && hidden.includes(id)) return;
       tiles.append(el('button', { class: 'tile', 'data-app': id, 'aria-label': a.title, onclick: () => LS.openApp(id) },
         el('span', { class: 'ic', style: { background: a.color }, html: a.emoji ? `<span class="emo">${a.emoji}</span>` : icon(a.icon) }),
@@ -124,7 +126,7 @@
   /* ---------- Visibility: lock again if hidden for longer than auto-lock ---------- */
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) hiddenAt = Date.now();
+    if (document.hidden) { hiddenAt = Date.now(); if (LS.devActive) LS.goLock(); } // Developer Tools never survives backgrounding
     else if (hiddenAt && !LS.isLocked() && Date.now() - hiddenAt > LS.idleLimitMs()) LS.goLock();
     if (LS.wake) LS.wake.sync();
   });
