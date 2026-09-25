@@ -287,7 +287,7 @@
     const app = LS.apps[id]; if (!app) return;
     if (current && current.id !== id) LS.closeApp(true);
     const body = $('#appBody'), actions = $('#appActions');
-    body.innerHTML = ''; actions.innerHTML = ''; body.className = 'app-body';
+    body.innerHTML = ''; actions.innerHTML = ''; body.className = 'app-body'; body.scrollTop = 0;
     $('#appTitle').textContent = app.title;
     LS.backLabel('Home');
     $('#appScreen').classList.toggle('dark-bar', !!app.darkBar);

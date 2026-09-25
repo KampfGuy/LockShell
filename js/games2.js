@@ -12,7 +12,7 @@
 
   /* ======================= BREAKOUT ======================= */
   function breakout(body, actions) {
-    const W = Math.min(window.innerWidth - 24, 380), H = Math.max(360, Math.min(window.innerHeight - 250, Math.round(W * 1.45)));
+    const W = Math.min(window.innerWidth - 24, 380), H = Math.max(360, Math.min(window.innerHeight - 250, Math.round(W * 1.6)));
     const [cv, g] = dprCanvas(W, H);
     const [sb, sv] = scoreBox('Score', 0), [lb, lv] = scoreBox('Lives', 3), [bb, bv] = scoreBox('Best', LS.gameBest('breakout'));
     const msg = el('div', { class: 'game-msg', text: 'Drag to move the paddle. Tap to launch.' });
@@ -281,9 +281,14 @@
       g.fillStyle = 'rgba(255,214,10,.9)'; g.beginPath(); g.arc(W - 50, 60, 26, 0, Math.PI * 2); g.fill();
       g.fillStyle = 'rgba(255,255,255,.9)';
       [[(80 - t * 12) % (W + 120), 90], [(260 - t * 8) % (W + 120), 150]].forEach(([x, y]) => { const xx = x < -60 ? x + W + 120 : x; g.beginPath(); g.arc(xx, y, 18, 0, 7); g.arc(xx + 20, y - 8, 22, 0, 7); g.arc(xx + 42, y, 16, 0, 7); g.fill(); });
+      // pillars: stacks of rounded pastel blocks (original look)
+      const BLK = 34, cols2 = ['#a78bfa', '#8b5cf6'];
       pillars.forEach((p) => {
-        g.fillStyle = '#34c759'; rr(g, p.x, -10, PW, p.gapY + 10, 10); g.fill(); rr(g, p.x, p.gapY + GAPH, PW, H - p.gapY - GAPH - 20, 10); g.fill();
-        g.fillStyle = '#28a745'; rr(g, p.x - 4, p.gapY - 18, PW + 8, 18, 6); g.fill(); rr(g, p.x - 4, p.gapY + GAPH, PW + 8, 18, 6); g.fill();
+        let i = 0;
+        for (let y = p.gapY - BLK; y > -BLK; y -= BLK) { g.fillStyle = cols2[i++ % 2]; rr(g, p.x, y + 2, PW, BLK - 4, 9); g.fill(); }
+        i = 0;
+        for (let y = p.gapY + GAPH; y < H - 30; y += BLK) { const bh = Math.min(BLK - 4, H - 30 - y - 2); if (bh < 10) break; g.fillStyle = cols2[i++ % 2]; rr(g, p.x, y + 2, PW, bh, Math.min(9, bh / 2)); g.fill(); }
+        g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(p.x + 8, 0, 5, p.gapY - 6); g.fillRect(p.x + 8, p.gapY + GAPH + 6, 5, H - 36 - p.gapY - GAPH);
       });
       g.fillStyle = '#c9a66b'; g.fillRect(0, H - 30, W, 30); g.fillStyle = '#7bc86c'; g.fillRect(0, H - 30, W, 8);
       // the hopper: a round little bird-like puff with a wing and a beak (original art)

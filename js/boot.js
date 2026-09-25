@@ -154,6 +154,9 @@
   }, true);
   try { window.open = function () { return null; }; } catch (e) {}
 
+  // Containers that must never scroll (programmatic scrolls or iOS focus can nudge them).
+  [$('#root')].concat($$('.screen')).forEach((n) => n.addEventListener('scroll', () => { if (n.scrollTop) n.scrollTop = 0; }));
+
   /* ---------- Start ---------- */
   LS.ensureDefaultPin().then(() => { LS.resetLockEntry(); });
   LS.renderHome();

@@ -44,7 +44,7 @@
   const btn = (text, onclick, cls) => el('button', { class: 'pill-btn' + (cls ? ' ' + cls : ''), text, onclick });
   const kv = (k, v) => U().row(k, el('span', { class: 'val dev-val', text: v }));
   const out = () => el('div', { class: 'dev-out', hidden: true });
-  function show(o, text, cls) { o.hidden = false; o.className = 'dev-out' + (cls ? ' ' + cls : ''); o.textContent = text; }
+  function show(o, text, cls) { o.hidden = false; o.classList.remove('ok', 'bad'); if (cls) o.classList.add(cls); o.textContent = text; }
   const yes = (b) => (b ? '✅ Yes' : '— No');
   const bytes = (n) => (n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB');
   const repaint = () => { if (root) { const y = root.scrollTop; build(); root.scrollTop = y; } };
