@@ -50,13 +50,19 @@
   const repaint = () => { if (root) { const y = root.scrollTop; build(); root.scrollTop = y; } };
 
   const EXTRA_INFO = {
+    youtube: ['YouTube', 'App: approved videos only, daily limit', 'video', 'linear-gradient(135deg,#ff3b30,#c7001e)'],
+    photos: ['Photos', 'App: camera photos + drawings', 'photos', 'linear-gradient(135deg,#ff9500,#ff2d55 55%,#af52de)'],
+    stories: ['Stories', 'App: 12 stories, read aloud', 'book', 'linear-gradient(135deg,#ff9f0a,#ff6b00)'],
+    quiz: ['Quiz', 'App: 112 kid trivia questions', 'quiz', 'linear-gradient(135deg,#ffcc00,#ff9500)'],
     piano: ['Piano', 'App: two octaves, multitouch', 'piano', 'linear-gradient(135deg,#3a3a3c,#000000)'],
     calendar: ['Calendar', 'App: month view + events', 'calendar', 'linear-gradient(135deg,#ff3b30,#ff6961)'],
     dice: ['Dice & Coin', 'App: roll dice, flip a coin', 'dice', 'linear-gradient(135deg,#30d158,#0a9f3a)'],
     breakout: ['Breakout', 'Game: drag the paddle', '🧱', '#ff6b6b'],
     mines: ['Minesweeper', 'Game: 3 sizes, flag mode', '💣', '#8e9aaf'],
     connect4: ['Connect Four', 'Game: vs AI or 2 players', '🔴', '#1e88e5'],
-    skyhop: ['Sky Hop', 'Game: tap to fly', '🐤', '#4fc3f7']
+    skyhop: ['Sky Hop', 'Game: tap to fly', '🐤', '#4fc3f7'],
+    wordsearch: ['Word Search', 'Game: themed words, 3 sizes', '🔤', '#00c7be'],
+    simon: ['Simon', 'Game: copy the colors', '🟢', '#34c759']
   };
 
   /* ---------- Main page ---------- */
@@ -141,6 +147,8 @@
     p.append(el('div', { class: 'set-head', id: 'devAdd', text: 'Apps & Games' }), group(...addRows),
       foot('These are on by default. Turn one off to hide it from the Home screen (apps) or the Games app (games). Buddy can only open the ones that are on.'));
 
+    buildScreenTime(p);
+    buildYouTube(p);
     buildShell(p);
 
     // ----- Data -----
@@ -202,6 +210,73 @@
     p.append(el('button', { class: 'primary-btn dev-exit', text: 'Exit Developer Tools', onclick: exit }));
   }
 
+  /* ---------- Screen Time ---------- */
+  function buildScreenTime(p) {
+    const { group, head, foot, row, toggle, select } = U();
+    const sc = LS.settings.screen, T = LS.screenTime;
+    const used = Math.round(T.usedMs() / 60000), lim = T.limitMs();
+    const timeIn = (key, label) => { const i = el('input', { type: 'time', class: 'dev-time', value: sc[key], 'aria-label': label }); i.onchange = () => { if (/^\d{2}:\d{2}$/.test(i.value)) { sc[key] = i.value; save(); LS.screenTimeCheck(); } }; return i; };
+    p.append(el('div', { class: 'set-head', id: 'devScreen', text: 'Screen Time' }), group(
+      row('Daily ShellOS limit', select([[0, 'Off'], [30, '30 min'], [60, '1 hour'], [90, '1.5 hours'], [120, '2 hours'], [180, '3 hours']], sc.limitMin, (v) => { sc.limitMin = Number(v); save(); LS.screenTimeCheck(); LS.toast(Number(v) ? 'Daily limit: ' + v + ' min' : 'Daily limit off'); repaint(); }, 'Daily ShellOS limit')),
+      row('Used today', el('span', { class: 'val dev-val', text: used + ' min' + (lim !== Infinity ? ' of ' + Math.round(lim / 60000) + ' min' : '') })),
+      row('Give 15 more minutes today', btn('+15 min', () => { T.addMinutes(15); LS.toast('15 more minutes today'); repaint(); })),
+      row("Reset today's time", btn('Reset', () => { T.resetToday(); LS.toast('Screen time reset for today'); repaint(); })),
+      row('Bedtime', toggle(!!sc.bedtime, (v) => { sc.bedtime = v; save(); LS.screenTimeCheck(); repaint(); }, 'Bedtime')),
+      row('Bedtime starts', timeIn('bedStart', 'Bedtime starts')),
+      row('Bedtime ends', timeIn('bedEnd', 'Bedtime ends')),
+      row(T.skipping() ? 'Bedtime skipped tonight' : 'Skip bedtime tonight', btn(T.skipping() ? 'Undo' : 'Skip', () => { if (T.skipping()) T.clearSkip(); else T.skipBedtimeTonight(); repaint(); }))),
+      foot('Time counts only while ShellOS is unlocked and on screen, and resets at midnight. When time is up, or during bedtime, ShellOS locks and the passcode cannot open it. The small Parent button on that screen asks for the developer code. The lock screen shows the time left.'));
+  }
+
+  /* ---------- YouTube ---------- */
+  function buildYouTube(p) {
+    const { group, head, foot, row, toggle, select } = U();
+    const y = LS.settings.yt, T = LS.ytTime;
+    const used = Math.round(T.usedMs() / 60000), lim = T.limitMs();
+    p.append(el('div', { class: 'set-head', id: 'devYouTube', text: 'YouTube' }), group(
+      row('Show YouTube app', toggle(LS.hasExtra('youtube'), (v) => { LS.setExtra('youtube', v); LS.renderHome(); LS.toast(v ? 'YouTube shown' : 'YouTube hidden'); setTimeout(repaint, 250); }, 'Show YouTube app')),
+      row('Daily YouTube limit', select([[0, 'Off'], [15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '60 min'], [90, '90 min']], y.limitMin, (v) => { y.limitMin = Number(v); save(); LS.toast(Number(v) ? 'YouTube limit: ' + v + ' min a day' : 'YouTube limit off'); repaint(); }, 'Daily YouTube limit')),
+      row('Watched today', el('span', { class: 'val dev-val', text: used + ' min' + (lim !== Infinity ? ' of ' + Math.round(lim / 60000) + ' min' : '') })),
+      row('Give 15 more minutes today', btn('+15 min', () => { T.addMinutes(15); LS.toast('15 more YouTube minutes today'); repaint(); })),
+      row("Reset today's YouTube time", btn('Reset', () => { T.reset(); LS.toast('YouTube time reset for today'); repaint(); }))),
+      foot('Only the videos below can play. Videos play from youtube-nocookie.com in a locked frame: the YouTube logo and links cannot open YouTube, and if the player tries to switch to any other video it is stopped. Time counts while a video screen is open.'));
+    // Add a video
+    const vIn = el('input', { class: 'txt-in', type: 'text', placeholder: 'Paste a YouTube link or video ID', maxlength: 200, 'aria-label': 'Add YouTube video', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' });
+    const prev = el('div', { class: 'dev-yt-prev', hidden: true });
+    const checkBtn = el('button', { class: 'pill-btn', type: 'submit', text: 'Check' });
+    p.append(head('Add a video'), el('form', { class: 'wx-search', onsubmit: async (e) => {
+      e.preventDefault(); const q = vIn.value.trim(); if (!q) return;
+      prev.hidden = false; prev.className = 'dev-yt-prev'; prev.textContent = 'Checking with YouTube…'; checkBtn.disabled = true;
+      const r = await LS.ytLookup(q); checkBtn.disabled = false;
+      prev.innerHTML = '';
+      if (!r.ok) { prev.classList.add('bad'); prev.append(el('b', { text: '⛔ Not added' }), el('div', { text: r.why }), r.v ? el('small', { text: r.v.title + ' · ' + r.v.ch }) : ''); return; }
+      prev.classList.add('ok');
+      prev.append(el('img', { src: r.thumb, alt: '', referrerpolicy: 'no-referrer' }), el('div', { class: 'meta' }, el('b', { text: r.v.title }), el('small', { text: r.v.ch + ' · ' + r.v.id }),
+        el('div', { class: 'btns' }, el('button', { class: 'ghost-btn', type: 'button', text: 'Cancel', onclick: () => { prev.hidden = true; } }),
+          el('button', { class: 'primary-btn', type: 'button', text: 'Add to library', onclick: () => { y.added = (y.added || []).filter((x) => x.id !== r.v.id).concat({ id: r.v.id, title: r.v.title, ch: r.v.ch, t: Date.now() }); y.removed = (y.removed || []).filter((x) => x !== r.v.id); save(); LS.toast('Added: ' + r.v.title); repaint(); } }))));
+    } }, vIn, checkBtn), prev,
+      foot('ShellOS checks the video with YouTube (it must exist and allow embedding) and runs the title and channel through the Shell filter. Watch it yourself before adding.'));
+    // Library
+    const lib = LS.ytLibrary();
+    const Y = window.YTLibrary, removed = y.removed || [];
+    const rows = lib.map((v) => el('div', { class: 'set-row dev-yt-row', 'data-yt': v.id },
+      el('span', { class: 'lab two' }, el('span', { text: v.title }), el('small', { text: v.ch + (v.custom ? ' · added by you' : '') })),
+      btn('Remove', () => { if (v.custom) y.added = (y.added || []).filter((x) => x.id !== v.id); else y.removed = removed.concat(v.id); save(); repaint(); }, 'danger')));
+    const gone = Y.VIDEOS.filter((v) => removed.includes(v.id));
+    p.append(el('div', { class: 'dev-head-row' }, el('div', { class: 'set-head', text: 'Approved videos (' + lib.length + ')' }),
+      btn('Reset to default', async () => { if (await LS.confirm('Reset the video list?', 'Removes videos you added and brings back the ' + Y.VIDEOS.length + ' default videos.', 'Reset', true)) { y.added = []; y.removed = []; save(); LS.toast('Video list reset'); repaint(); } })),
+      group(...(rows.length ? rows : [row('No videos', null)])),
+      gone.length ? foot('Removed default videos (' + gone.length + '): ' + gone.map((v) => v.title).join(', ') + '. Use Reset to default to bring them back.') : '');
+    // History
+    const h = LS.ytHistory().slice().reverse();
+    const hBox = el('div', { class: 'dev-log dev-yt-hist' });
+    if (!h.length) hBox.append(el('div', { class: 'muted', text: 'No videos watched yet.' }));
+    h.forEach((x) => hBox.append(el('div', { class: x.stopped ? 'dev-log-error' : '' },
+      el('small', { text: new Date(x.t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' · watched ' + LS.fmtDur(x.watchedMs || 0) + (x.ended ? ' · finished' : '') + (x.stopped ? ' · STOPPED' : '') }),
+      el('div', { text: x.title + ' (' + x.ch + ')' + (x.stopped ? '  ' + x.stopped : '') }))));
+    p.append(el('div', { class: 'dev-head-row' }, el('div', { class: 'set-head', text: 'Watch history (' + h.length + ')' }), btn('Clear', () => { LS.clearYtHistory(); repaint(); })), hBox);
+  }
+
   /* ---------- Shell (browser) controls ---------- */
   function buildShell(p) {
     const { group, head, foot, row, toggle, seg } = U();
@@ -218,7 +293,7 @@
     }).concat((sh.addSites || []).map((h) => row(h, el('span', { class: 'val' }, el('small', { class: 'dev-host', text: ready.includes(h) ? 'custom' : 'custom · restart needed' }), btn('Remove', () => { sh.addSites = sh.addSites.filter((x) => x !== h); save(); repaint(); }, 'danger')))));
     const siteIn = el('input', { class: 'txt-in', type: 'text', placeholder: 'example.org', maxlength: 100, 'aria-label': 'Add allowed site', autocapitalize: 'off', autocorrect: 'off' });
     p.append(head('Allowed kid websites'), group(...siteRows),
-      el('form', { class: 'wx-search', onsubmit: (e) => { e.preventDefault(); const h = F.cleanHost(siteIn.value); if (!h) { LS.toast('Not a valid website'); return; } if (F.siteFor(h, LS.shellSites())) { LS.toast('Already allowed'); return; } sh.addSites = (sh.addSites || []).concat(h); save(); LS.toast('Added ' + h + '. Restart ShellOS to use it.'); repaint(); } }, siteIn, el('button', { class: 'pill-btn', type: 'submit', text: 'Add' })),
+      el('form', { class: 'wx-search', onsubmit: (e) => { e.preventDefault(); const h = F.cleanHost(siteIn.value); if (!h) { LS.toast('Not a valid website'); return; } if (LS.shellIsYouTube(h)) { LS.toast('YouTube stays blocked in Shell. Add videos in the YouTube section.'); return; } if (F.siteFor(h, LS.shellSites())) { LS.toast('Already allowed'); return; } sh.addSites = (sh.addSites || []).concat(h); save(); LS.toast('Added ' + h + '. Restart ShellOS to use it.'); repaint(); } }, siteIn, el('button', { class: 'pill-btn', type: 'submit', text: 'Add' })),
       foot('Only add sites made for kids. A site must allow being shown in a frame (many block it). New sites start working after ShellOS restarts, because the frame policy is set at start-up.'),
       group(row('Restart ShellOS', btn('Restart', () => location.reload()))));
     // Custom blocked words
@@ -289,7 +364,7 @@
     r.onend = () => { if (LS.wake) LS.wake.pause(false); if (heard) show(o, 'Heard: "' + heard + '"' + (/\bbuddy\b/i.test(heard) ? '\nWake word detected ✅' : '\nNo wake word'), 'ok'); };
     try { r.start(); setTimeout(() => { try { r.stop(); } catch (e) {} }, 5000); } catch (e) { show(o, 'Could not start: ' + e.message, 'bad'); if (LS.wake) LS.wake.pause(false); }
   }
-  function exit() { LS.openApp('settings'); }
+  function exit() { if (LS.screenTime && LS.screenTime.blocked()) { LS.goLock(); return; } LS.openApp('settings'); }
 
   LS.register('dev', {
     title: 'Developer Tools', icon: 'code', color: '#48484a', hiddenApp: true,

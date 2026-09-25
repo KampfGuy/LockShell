@@ -18,11 +18,12 @@
 <link rel="stylesheet" href="css/app.css">
 <script src="js/shell-filter.js"></script>
 <script>
-/* Theme before paint, and a Content-Security-Policy that only lets frames load the allowed kid sites.
-   frame-src also stops an allowed site from navigating its own frame to any other website. Fails closed to 'none'. */
+/* Theme before paint, and a Content-Security-Policy that only lets frames load the allowed kid sites and the
+   YouTube app's player (youtube-nocookie.com only; youtube.com itself is never allowed in a frame).
+   frame-src also stops an allowed site from navigating its own frame to any other website. */
 (function () {
   var s = {}, hosts = [];
-  try { s = JSON.parse(localStorage.getItem('lockshell.settings.v3') || localStorage.getItem('lockshell.settings.v2') || '{}') || {}; } catch (e) {}
+  try { s = JSON.parse(localStorage.getItem('lockshell.settings.v4') || localStorage.getItem('lockshell.settings.v3') || localStorage.getItem('lockshell.settings.v2') || '{}') || {}; } catch (e) {}
   if (s.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
   try {
     var sh = s.shell || {}, off = sh.removedSites || [];
@@ -30,9 +31,10 @@
     hosts = hosts.filter(function (h) { return typeof h === 'string' && /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h); });
   } catch (e) { hosts = []; }
   var src = [];
-  hosts.forEach(function (h) { var b = h.replace(/^www\./, ''); src.push('https://' + b, 'https://www.' + b); });
+  hosts.forEach(function (h) { var b = h.replace(/^www\./, ''); if (/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(b)) return; src.push('https://' + b, 'https://www.' + b); });
+  src.push('https://www.youtube-nocookie.com');
   var m = document.createElement('meta'); m.httpEquiv = 'Content-Security-Policy';
-  m.content = 'frame-src ' + (src.length ? src.join(' ') : "'none'") + "; object-src 'none'; form-action 'self'";
+  m.content = 'frame-src ' + src.join(' ') + "; object-src 'none'; form-action 'self'";
   document.head.appendChild(m);
   window.SHELL_FRAME_HOSTS = hosts;
 })();
@@ -46,6 +48,7 @@
     <div class="lock-clock">
       <div class="lock-glyph" id="lockGlyph"></div>
       <div class="lock-brand">ShellOS</div>
+      <div class="lock-limit" id="lockLimit" hidden></div>
       <div class="clock-date" id="clockDate"></div>
       <div class="clock-time" id="clockTime">12:00</div>
     </div>
@@ -82,6 +85,7 @@
   </section>
 </div>
 
+<div id="timeUp" class="overlay time-up" hidden role="dialog" aria-label="Screen time"></div>
 <div id="pinOverlay" class="overlay pin-overlay" hidden></div>
 <div id="modal" class="overlay" hidden><div class="sheet" id="modalSheet"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -97,11 +101,20 @@
 <script src="js/weather.js"></script>
 <script src="js/games.js"></script>
 <script src="js/games2.js"></script>
+<script src="js/games3.js"></script>
 <script src="js/tools.js"></script>
 <script src="js/apps2.js"></script>
 <script src="js/shell.js"></script>
+<script src="js/yt-library.js"></script>
+<script src="js/youtube.js"></script>
+<script src="js/photos.js"></script>
+<script src="js/stories-data.js"></script>
+<script src="js/stories.js"></script>
+<script src="js/quiz-data.js"></script>
+<script src="js/quiz.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/dev.js"></script>
+<script src="js/screentime.js"></script>
 <script src="js/boot.js"></script>
 </body>
 </html>

@@ -243,6 +243,26 @@
         <li>The tiles on the Shell home page open checked kid websites. Other website addresses are blocked.</li>
         <li>For extra protection, also turn on <b>Screen Time &gt; Content &amp; Privacy Restrictions &gt; Web Content &gt; Limit Adult Websites</b> (see About).</li>
       </ol>
+      <h3>YouTube (approved videos only)</h3>
+      <ol>
+        <li>The YouTube app only plays videos a parent approved: a starter list from kids' channels like SciShow Kids, Nat Geo Kids, Sesame Street, Crash Course Kids, Numberblocks, Alphablocks and PBS KIDS.</li>
+        <li>There is no YouTube search. The "Find a video" box only searches the approved list.</li>
+        <li>When a video ends, ShellOS shows its own "Up next" from the approved list. YouTube's own suggestions can't be opened.</li>
+        <li>There is a daily YouTube time limit (1 hour to start). When it's used up, YouTube says "YouTube time is done for today" until midnight.</li>
+        <li>Parents: add or remove videos, change the limit, see the watch history, or hide the app in the Developer Tools.</li>
+      </ol>
+      <h3>Photos, Stories and Quiz</h3>
+      <ol>
+        <li><b>Photos</b> shows camera pictures and saved drawings. Swipe to flip through them. Deleting needs the passcode.</li>
+        <li><b>Stories</b> has short stories with big text. Tap <b>Read to me</b> and Buddy reads out loud, lighting up each sentence. Tap any sentence to start there.</li>
+        <li><b>Quiz</b> has over 100 questions about animals, space, geography, math and science, and remembers your best score.</li>
+      </ol>
+      <h3>Screen Time in ShellOS</h3>
+      <ol>
+        <li>A parent can set a daily ShellOS time limit and a bedtime in the Developer Tools. Both are off to start.</li>
+        <li>Time only counts while ShellOS is unlocked and on screen, and starts fresh at midnight. The lock screen shows the time left.</li>
+        <li>When time is up, or at bedtime, ShellOS shows a "Time to rest" screen and the passcode can't open it. A parent can tap <b>Parent</b> on that screen.</li>
+      </ol>
       <h3>Voice Buddy</h3>
       <ol>
         <li>Shake the phone, tap the mic button on the Home screen, or say "Hey Buddy" (if the wake word is on) to talk with just your voice.</li>
@@ -261,7 +281,8 @@
         <li>The "Hey Buddy" wake word only works while ShellOS is open, unlocked and on screen, and iOS may stop it at any time.</li>
         <li>Weather needs the internet. The last forecast is saved for offline use.</li>
         <li>Web apps can't read the volume buttons, so voice Buddy opens with a shake or the mic button.</li>
-        <li>Shell and Weather need the internet.</li>
+        <li>Shell, YouTube and Weather need the internet.</li>
+        <li>YouTube plays inside a locked frame. ShellOS can't filter what is inside a video itself, which is why only approved videos can play.</li>
       </ol>`;
     p.append(h);
   }
@@ -272,17 +293,30 @@
     const li = (arr) => '<ul>' + arr.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
     p.append(
       el('div', { class: 'about-hero' }, el('img', { src: 'icons/icon-192.png', alt: '' }), el('h2', { text: 'ShellOS' }), el('p', { class: 'muted', text: 'Version ' + (LS.VERSION || '1.0') + ' · Built ' + (LS.BUILD_DATE || '') })),
-      group(row('Works offline', el('span', { class: 'val', text: 'Yes (except Weather and Shell)' })), row('Accounts or tracking', el('span', { class: 'val', text: 'None' })), row('Data location', el('span', { class: 'val', text: 'This phone only' }))),
+      group(row('Works offline', el('span', { class: 'val', text: 'Yes (except Weather, Shell, YouTube)' })), row('Accounts or tracking', el('span', { class: 'val', text: 'None' })), row('Data location', el('span', { class: 'val', text: 'This phone only' }))),
       sec('Apps (' + apps.length + ')', '<p>' + LS.esc(apps.join(', ')) + '</p>'),
       sec('Games (' + games.length + ')', '<p>' + LS.esc(games.join(', ')) + '</p>'),
-      sec('Buddy', '<p><b>Can:</b> tell the time and date, do math, convert units, explain simple words, tell jokes, fun facts and riddles, flip coins and roll dice, open apps and games, and search Shell for you. Shake the phone or tap the mic button to talk with just your voice.</p><p><b>Can\'t:</b> go on the internet, remember chats after the phone locks, or help with anything unsafe. It refuses sexual, violent, drug, hacking, hateful or self-harm topics, and never helps get past the lock, the passcode, the web filter or Guided Access. If someone sounds sad or unsafe, it points them to a trusted adult and 988.</p>'),
+      sec('Buddy', '<p><b>Can:</b> tell the time and date, do math, convert units, explain simple words, tell jokes, fun facts and riddles, flip coins and roll dice, open apps and games (like "open YouTube", "tell me a story" or "quiz me"), and search Shell for you. Shake the phone or tap the mic button to talk with just your voice.</p><p><b>Can\'t:</b> go on the internet, remember chats after the phone locks, or help with anything unsafe. It refuses sexual, violent, drug, hacking, hateful or self-harm topics, and never helps get past the lock, the passcode, the web filter, time limits or Guided Access. If someone sounds sad or unsafe, it points them to a trusted adult and 988.</p>'),
       sec('Safety', li([
         '<b>Buddy filter:</b> every message is checked before Buddy answers (including leetspeak and spaced-out words), and every reply is checked again before it is shown or spoken.',
         '<b>Shell filter:</b> Wikipedia (Simple English) is shown inside ShellOS only after the title, the article categories and the whole article text pass the filter. Sexual topics are always blocked. War and history are allowed, but pages about massacres, genocide, torture, terrorism, executions or other graphic events are blocked. Searches are filtered too. If a check cannot finish, the page is not shown.',
         '<b>Kid websites:</b> only a short list of checked kid sites can open, inside a locked frame that cannot open pop-ups, leave ShellOS, or go to other websites. Any other address is blocked.',
-        'Images in Wikipedia are off by default.'
+        'Images in Wikipedia are off by default.',
+        '<b>Stories and Quiz</b> are written for ShellOS and live on the phone, so they work offline.'
       ])),
-      sec('Privacy', '<p>Everything you make (photos, recordings, drawings, notes, events, scores, settings) stays on this phone. There are no accounts, ads or tracking in ShellOS. The only network use is <b>Open-Meteo</b> for weather, <b>Wikipedia</b> for Shell articles, and the kid websites you choose to open in Shell (those sites have their own privacy rules).</p>'),
+      sec('YouTube safety', li([
+        '<b>Approved videos only:</b> ' + (window.YTLibrary ? window.YTLibrary.VIDEOS.length : 39) + ' checked videos to start, from ' + (window.YTLibrary ? window.YTLibrary.CHANNELS.map((c) => c.ch).join(', ') : 'kids\' channels') + '. A parent can add or remove videos. There is no YouTube search.',
+        'Video titles and channel names must also pass the Shell filter, or the video is hidden.',
+        'Videos play from <b>youtube-nocookie.com</b> in a locked frame that cannot open pop-ups or new pages, so the YouTube logo and title links do nothing. The page\'s frame policy only allows that player, and youtube.com stays blocked in Shell.',
+        'When a video ends, ShellOS removes the player and shows its own "Up next". If the player ever tries to switch to a video that isn\'t approved (for example from YouTube\'s end or pause screens), ShellOS stops it right away.',
+        'A daily YouTube limit (1 hour to start) and a watch history are in the Developer Tools.'
+      ])),
+      sec('Screen Time in ShellOS', li([
+        'Optional daily limit for all of ShellOS (30 minutes to 3 hours) and an optional bedtime window. Both are off to start.',
+        'Time counts only while ShellOS is unlocked and on screen, and resets at midnight. The lock screen shows the time left.',
+        'When time is up or during bedtime, ShellOS shows a "Time to rest" screen. The normal passcode cannot get past it. Only a parent can, with the Parent button.'
+      ])),
+      sec('Privacy', '<p>Everything you make (photos, recordings, drawings, notes, events, scores, settings) stays on this phone. There are no accounts, ads or tracking in ShellOS. The only network use is <b>Open-Meteo</b> for weather, <b>Wikipedia</b> for Shell articles, the kid websites you choose to open in Shell, and <b>YouTube</b> (youtube-nocookie.com for playing approved videos, i.ytimg.com for thumbnails, and youtube.com only when a parent checks a new video). Those services have their own privacy rules.</p>'),
       sec('iPhone limits', li([
         'No battery level: iPhone does not let web apps read the battery.',
         'No volume buttons: web apps cannot read them, so voice Buddy uses a shake or the mic button instead.',
@@ -290,7 +324,7 @@
         'ShellOS cannot lock the phone by itself. Turn on <b>Guided Access</b> (Settings &gt; Accessibility &gt; Guided Access) so the phone stays inside ShellOS. See Help &amp; Setup.'
       ])),
       sec('Recommended: Screen Time', '<ol><li>Open the <b>Settings</b> app &gt; <b>Screen Time</b> &gt; turn it on and set a Screen Time passcode.</li><li>Tap <b>Content &amp; Privacy Restrictions</b> and turn it on.</li><li>Tap <b>App Store, Media, Web &amp; Games</b> (or <b>Content Restrictions</b>) &gt; <b>Web Content</b> &gt; <b>Limit Adult Websites</b>.</li><li>This adds Apple\'s own filter on top of ShellOS for every website.</li></ol>'),
-      sec('Credits', '<p>Made by <b>Kampf Kaiser</b> (KampfGuy). Project name: LockShell. Weather data by Open-Meteo.com. Articles from Wikipedia (CC BY-SA). Kid websites belong to their owners.</p>')
+      sec('Credits', '<p>Made by <b>Kampf Kaiser</b> (KampfGuy). Project name: LockShell. Weather data by Open-Meteo.com. Articles from Wikipedia (CC BY-SA). Kid websites and videos belong to their owners. Stories and quiz questions are original to ShellOS.</p>')
     );
   }
 
