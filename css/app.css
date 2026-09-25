@@ -440,3 +440,10 @@ div.set-row:active{background:var(--card)}
 .help{line-height:1.5}
 .help b{font-weight:650}
 .sheet.viewer img{max-height:60vh}
+.tile .lbl{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;max-width:84px}
+#appScreen.calc-mode .app-bar{background:#000;border-bottom-color:#000}
+#appScreen.calc-mode .app-bar h1{color:#fff}
+#appScreen.calc-mode .back-btn{color:#ff9f0a}
+#appScreen.calc-mode .back-btn svg{stroke:#ff9f0a}
+.dpad{grid-template-columns:repeat(3,78px);grid-template-rows:repeat(2,64px);gap:10px;margin-top:16px}
+.dpad button{font-size:24px;border-radius:18px}

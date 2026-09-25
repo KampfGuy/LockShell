@@ -69,7 +69,7 @@
     title: 'Calculator', icon: 'calc', color: 'linear-gradient(135deg,#8e8e93,#3a3a3c)',
     open(body) {
       const E = CalcEngine();
-      body.classList.add('calc-body');
+      body.classList.add('calc-body'); LS.$('#appScreen').classList.add('calc-mode');
       const disp = el('div', { class: 'calc-display', 'aria-live': 'polite' });
       const keys = el('div', { class: 'calc-keys' });
       const layout = [['ac', 'fn', 'AC'], ['neg', 'fn', '+/−'], ['pct', 'fn', '%'], ['/', 'op', '÷'],
@@ -102,7 +102,7 @@
       document.addEventListener('keydown', onKey); this._off = () => document.removeEventListener('keydown', onKey);
       render();
     },
-    close() { if (this._off) this._off(); }
+    close() { if (this._off) this._off(); LS.$('#appScreen').classList.remove('calc-mode'); }
   });
 
   /* ======================= TIMER + STOPWATCH ======================= */
