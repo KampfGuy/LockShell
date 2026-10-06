@@ -228,7 +228,7 @@ with sync_playwright() as p:
     # ================= About =================
     open_app('settings'); page.click('.set-row:has-text("About")'); page.wait_for_timeout(300)
     about = page.inner_text('#appBody')
-    check(all(k in about for k in ['ShellOS', 'Version 1.4.0', 'Apps (19)', 'Games (12)', 'YouTube safety', 'youtube-nocookie.com', 'Screen Time in ShellOS', 'Buddy', 'Safety', 'Shell filter', 'Privacy', 'Open-Meteo', 'Wikipedia', 'iPhone limits', 'volume buttons', 'Guided Access', 'Limit Adult Websites', 'Kampf Kaiser']), 'About has version, apps, games, Buddy, safety, privacy, limits, Screen Time, credits')
+    check(all(k in about for k in ['ShellOS', 'Version 1.5.0', 'Apps (19)', 'Games (12)', 'YouTube safety', 'youtube-nocookie.com', 'Screen Time in ShellOS', 'Buddy', 'Safety', 'Shell filter', 'Privacy', 'Open-Meteo', 'Wikipedia', 'iPhone limits', 'volume buttons', 'Guided Access', 'Limit Adult Websites', 'Kampf Kaiser']), 'About has version, apps, games, Buddy, safety, privacy, limits, Screen Time, credits')
     check('19845' not in about and '19845' not in page.content(), 'About never shows the developer code')
     shot('about.png'); back()
     page.click('.set-row:has-text("Shake for Buddy")'); page.wait_for_timeout(300); shot('extra/settings-shake.png'); back(); back()
@@ -684,9 +684,68 @@ with sync_playwright() as p:
     check(page.evaluate(G + '.banner') is None, 'no stage banner ("Almost there") over the win screen')
     check(mb - 5 <= rw['y'] <= mb, 'at the win the rocket nose touches the Moon (nose %.1f, Moon bottom %.1f)' % (rw['y'], mb))
     check(page.evaluate('LS.gameBest("moonrocket")') == 384400 and 'Moon!' in page.inner_text('.score-row'), 'best = the Moon (384,400 km)')
-    page.wait_for_timeout(700); shot('moonrocket-win.png')
+    check(page.locator('.mr-land-btn:not([hidden])').count() == 1 and 'Land on the Moon' in page.inner_text('.mr-land-btn'), 'Level 1 win shows "Land on the Moon" continue button')
+    check('Restart Level 1' in page.inner_text('#appActions'), 'Level 1 win offers Restart Level 1')
+    page.wait_for_timeout(500); shot('moonrocket-win.png')
+
+    # ================= Moon Rocket Level 2: Land =================
+    page.click('.mr-land-btn'); page.wait_for_timeout(600)
+    check(page.evaluate(G + '.level') == 2 and page.evaluate(G + '.state') == 'land_ready', 'Land button starts Level 2 (landing)')
+    check(page.locator('.mr-thrust:not([hidden])').count() == 1 and page.evaluate(G + '.fuel') == 100, 'Level 2 shows Thrust button and full fuel')
+    check(page.evaluate(G + '.rocket().keep') < 0.5, 'Level 2 uses the upper-stage / lander sprite')
+    pad = page.evaluate(G + '.pad()')
+    check(pad and pad['w'] >= 80, 'landing pad is on the lunar surface')
+    # hard crash: drop onto the pad too fast
+    page.evaluate('(() => { const g = ' + G + '; const p = g.pad(); g.setLand({ state: "land_play", x: p.x + p.w / 2, alt: 5, vy: 20, vx: 0, fuel: 80 }); for (let i = 0; i < 8; i++) g.step(0.05); })()')
+    page.wait_for_timeout(200)
+    check(page.evaluate(G + '.state') == 'land_crash' and 'Bonk' in page.inner_text('.game-msg'), 'too-hard a touchdown crashes gently ("Bonk!")')
+    page.wait_for_timeout(700); page.click('canvas.mr-canvas'); page.wait_for_timeout(400)
+    check(page.evaluate(G + '.state') == 'land_ready' and page.evaluate(G + '.fuel') == 100, 'tap retries landing from a high hover with full fuel')
+    # miss the pad
+    page.evaluate('(() => { const g = ' + G + '; const p = g.pad(); g.setLand({ state: "land_play", x: 20, alt: 3, vy: 4, vx: 0, fuel: 50 }); for (let i = 0; i < 30; i++) g.step(0.05); })()')
+    page.wait_for_timeout(150)
+    check(page.evaluate(G + '.state') == 'land_crash' and 'pad' in page.inner_text('.game-msg').lower(), 'missing the pad crashes')
+    page.click('canvas.mr-canvas'); page.wait_for_timeout(400)
+    # soft land: place over the pad, slow descent
+    page.evaluate('(() => { const g = ' + G + '; const p = g.pad(); g.setLand({ state: "land_play", x: p.x + p.w / 2, alt: 8, vy: 4, vx: 0, fuel: 62 }); for (let i = 0; i < 40; i++) g.step(0.05); })()')
+    page.wait_for_timeout(300)
+    check(page.evaluate(G + '.state') == 'land_win' and 'landed' in page.inner_text('.game-msg').lower(), 'soft land on the pad wins Level 2')
+    check(page.evaluate('LS.gameBestLow("moonland")') > 0 and page.evaluate('LS.gameBestLow("moonland")') <= 1200, 'softest landing best score saved (cm/s): %s' % page.evaluate('LS.gameBestLow("moonland")'))
+    # mid-descent screenshot: restart landing, set mid altitude with thrust feeling
+    page.click('canvas.mr-canvas'); page.wait_for_timeout(400)
+    page.evaluate('(() => { const g = ' + G + '; const p = g.pad(); g.setLand({ state: "land_play", x: p.x + p.w / 2 - 30, alt: 420, vy: 9, vx: 5, fuel: 55, thrust: true }); })()')
+    page.wait_for_timeout(400); shot('moonrocket-land.png')
+    # soft-land win screenshot
+    page.evaluate('(() => { const g = ' + G + '; const p = g.pad(); g.setLand({ state: "land_play", x: p.x + p.w / 2, alt: 6, vy: 3.5, vx: 0, fuel: 48 }); for (let i = 0; i < 40; i++) g.step(0.05); })()')
+    page.wait_for_timeout(800); shot('moonrocket-land-win.png')
+    check(page.evaluate(G + '.state') == 'land_win', 'land-win screenshot taken on the celebration screen')
+    # pause while landing
+    page.click('canvas.mr-canvas'); page.wait_for_timeout(300)
+    page.evaluate('(() => { const g = ' + G + '; g.setLand({ state: "land_play", alt: 300, vy: 6 }); })()')
+    page.evaluate('Object.defineProperty(document, "hidden", { configurable: true, get: () => true }); document.dispatchEvent(new Event("visibilitychange"))'); page.wait_for_timeout(200)
+    a1 = page.evaluate(G + '.alt'); page.wait_for_timeout(500)
+    check(page.evaluate(G + '.paused') and abs(page.evaluate(G + '.alt') - a1) < 0.01, 'Level 2 pauses while ShellOS is hidden')
+    page.evaluate('delete document.hidden; document.dispatchEvent(new Event("visibilitychange"))'); page.wait_for_timeout(200)
+    # thrust button works
+    page.click('canvas.mr-canvas'); page.wait_for_timeout(200)
+    page.evaluate('(() => { const g = ' + G + '; g.setLand({ state: "land_play", alt: 500, vy: 8, fuel: 90 }); })()')
+    page.dispatch_event('.mr-thrust', 'pointerdown'); page.wait_for_timeout(100)
+    check(page.eval_on_selector('.mr-thrust', 'e => e.classList.contains("on")'), 'holding Thrust lights the button')
+    v0 = page.evaluate(G + '.vy')
+    page.evaluate('(() => { const g = ' + G + '; g.setThrust(true); for (let i = 0; i < 20; i++) g.step(0.05); })()')
+    v1 = page.evaluate(G + '.vy'); page.dispatch_event('.mr-thrust', 'pointerup')
+    check(v1 < v0 - 1 and page.evaluate(G + '.fuel') < 90, 'Thrust slows the fall and burns fuel (vy %.1f -> %.1f, fuel %s)' % (v0, v1, page.evaluate(G + '.fuel')))
+    # best landing resets with unlock
+    page.evaluate('localStorage.setItem("lockshell.best.moonland", "350")')
+    back(); back(); page.wait_for_timeout(300)
+    page.click('#homeLock'); page.wait_for_timeout(300); page.keyboard.type('2468'); page.wait_for_timeout(900)
+    check(page.evaluate('localStorage.getItem("lockshell.best.moonland")') is None, 'landing best score resets on unlock after a lock')
+    open_app('games')
+    check('Landed' in page.inner_text('#appBody') or 'Moon' in page.inner_text('#appBody') or 'flights' in page.inner_text('#appBody').lower(), 'Games card mentions Moon Rocket progress')
+    # re-open and confirm Level 1 still works after Level 2
+    page.click('.game-card:has-text("Moon Rocket")'); page.wait_for_timeout(500)
+    check(page.evaluate(G + '.level') == 1 and page.evaluate(G + '.state') == 'ready', 'reopening Moon Rocket starts at Level 1')
     back()
-    check('reached the Moon' in page.inner_text('#appBody'), 'Games card shows the Moon Rocket record')
 
     # ================= Block World =================
     page.evaluate('localStorage.removeItem("lockshell.blockworld.v1")')
