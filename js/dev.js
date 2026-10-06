@@ -63,7 +63,7 @@
     skyhop: ['Sky Hop', 'Game: tap to fly', '🐤', '#4fc3f7'],
     wordsearch: ['Word Search', 'Game: themed words, 3 sizes', '🔤', '#00c7be'],
     simon: ['Simon', 'Game: copy the colors', '🟢', '#34c759'],
-    moonrocket: ['Moon Rocket', 'Game: fly the Saturn V to the Moon', '🚀', '#3a5bd9'],
+    moonrocket: ['Moon Rocket', 'Game: fly, then land on the Moon', '🚀', '#3a5bd9'],
     blockworld: ['Block World', 'Game: dig and build blocks', '⛏️', '#5fbf3a']
   };
 

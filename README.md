@@ -13,7 +13,7 @@ It looks like a phone: a lock screen with a passcode keypad, then a home screen 
 ## Features
 - Lock screen: clock, date, passcode keypad (default **1234**, stored as a salted SHA-256 hash, changeable in Settings), wrong code shakes.
 - Home screen apps: Settings, Games, Buddy, **Shell**, **YouTube**, Photos, Stories, Quiz, Camera, Voice Recorder, Notes, Weather, Calculator, Timer/Stopwatch, Drawing, Light, Piano, Calendar, Dice & Coin.
-- Games: Snake, 2048, Tic-Tac-Toe, Memory, Breakout, Minesweeper, Connect Four, Sky Hop, Word Search, Simon, **Moon Rocket** (drag the Saturn V, rendered from Kampf Kaiser's own Blender model, past planes, birds and asteroids to the Moon), **Block World** (2D block-building sandbox with a saved world).
+- Games: Snake, 2048, Tic-Tac-Toe, Memory, Breakout, Minesweeper, Connect Four, Sky Hop, Word Search, Simon, **Moon Rocket** (Level 1: drag the Saturn V, rendered from Kampf Kaiser's own Blender model, past planes, birds and asteroids to the Moon; Level 2: soft-land on a crater pad with thrust and fuel), **Block World** (2D block-building sandbox with a saved world).
 - Best scores reset to 0 every time ShellOS is unlocked after a lock (Developer Tools > Game Scores; on by default). Game sounds and volume are in Settings.
 - Auto-lock after idle time (default 2 minutes), lock button, light/dark theme.
 - Buddy: offline rule-based helper (math, unit conversion, time/date, definitions, jokes, facts, riddles, dice/coin, opens apps, searches Shell), spoken replies, tap-to-talk and an optional "Hey Buddy" wake word. Every message and every reply passes a safety filter.

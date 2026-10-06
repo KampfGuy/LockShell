@@ -1,6 +1,6 @@
 /* ShellOS (LockShell) service worker: cache-first for local assets, network-first for Open-Meteo.
    YouTube, Wikipedia and kid sites are cross-origin and never cached. */
-const VERSION = 'lockshell-v1.4.0';
+const VERSION = 'lockshell-v1.5.0';
 const ASSETS = [
   './', 'index.html', 'manifest.json', 'css/app.css',
   'js/core.js', 'js/shell-filter.js', 'js/buddy-brain.js', 'js/buddy.js', 'js/voice.js', 'js/camera.js', 'js/recorder.js', 'js/notes.js',

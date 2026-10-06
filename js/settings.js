@@ -267,7 +267,7 @@
       </ol>
       <h3>Moon Rocket and Block World</h3>
       <ol>
-        <li><b>Moon Rocket:</b> drag the Saturn V rocket with your finger. Dodge planes, birds and weather balloons in the sky and asteroids in space, and fly all the way to the Moon. If you bump into something, tap to try again from the last checkpoint.</li>
+        <li><b>Moon Rocket:</b> two levels. <b>Level 1 — Fly to the Moon:</b> drag the Saturn V with your finger. Dodge planes, birds and weather balloons in the sky and asteroids in space. If you bump into something, tap to try again from the last checkpoint. <b>Level 2 — Land on the Moon:</b> after you arrive, tap <b>Land on the Moon</b>. Drag sideways to steer and hold the big <b>Thrust</b> button to slow down. Soft-land on the green pad (under 12 m/s). Too hard = a gentle Bonk and you try the landing again.</li>
         <li><b>Block World:</b> build your own block world. Pick a block at the bottom, then choose <b>Move</b> (drag to look around), <b>Dig</b> (tap or drag to dig) or <b>Build</b> (tap or drag to place; hold on a block to dig it). Walk and jump with the big arrow buttons. Your world is saved on this phone. <b>New world</b> starts a fresh one.</li>
         <li>Best scores go back to 0 each time ShellOS is locked and unlocked (a parent can change this in the Developer Tools). Game sounds and their volume are in Settings.</li>
       </ol>
@@ -317,7 +317,7 @@
         '<b>Kid websites:</b> only a short list of checked kid sites can open, inside a locked frame that cannot open pop-ups, leave ShellOS, or go to other websites. Any other address is blocked.',
         'Images in Wikipedia are off by default.',
         '<b>Stories and Quiz</b> are written for ShellOS and live on the phone, so they work offline.',
-        '<b>Games</b> have no chat, ads, accounts or scary monsters. Moon Rocket crashes are a gentle "Bonk!" with a retry, and Block World is a calm building game. Best scores reset to 0 every time ShellOS is unlocked after a lock (a Developer Tools setting, on by default).'
+        '<b>Games</b> have no chat, ads, accounts or scary monsters. Moon Rocket has a gentle "Bonk!" on crashes (and hard landings) with a retry, and Block World is a calm building game. Best scores reset to 0 every time ShellOS is unlocked after a lock (a Developer Tools setting, on by default).'
       ])),
       sec('YouTube safety', li([
         '<b>Approved videos only:</b> ' + (window.YTLibrary ? window.YTLibrary.VIDEOS.length : 39) + ' checked videos to start, from ' + (window.YTLibrary ? window.YTLibrary.CHANNELS.map((c) => c.ch).join(', ') : 'kids\' channels') + '. A parent can add or remove videos. There is no YouTube search.',

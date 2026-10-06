@@ -438,8 +438,8 @@
   };
 
   LS.fmtDur = (ms) => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
-  LS.VERSION = '1.4.0';
-  LS.BUILD_DATE = '2026-09-25';
+  LS.VERSION = '1.5.0';
+  LS.BUILD_DATE = '2026-10-06';
   LS.OS_NAME = 'ShellOS';
   LS.fmtDate = (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 })();
