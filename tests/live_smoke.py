@@ -16,7 +16,8 @@ with sync_playwright() as p:
     r = page.goto(URL + '?smoke=1'); page.wait_for_timeout(1500)
     check(r.status == 200, 'live page 200')
     check(page.title() == 'ShellOS', 'title ShellOS')
-    check(page.evaluate('LS.VERSION') == '1.5.0', 'LS.VERSION 1.5.0')
+    check(page.evaluate('LS.VERSION') == '1.5.1', 'LS.VERSION 1.5.1')
+    check(page.locator('#lockLogo').count() == 1 and 'icon-192' in (page.get_attribute('#lockLogo', 'src') or ''), 'lock screen has ShellOS logo')
     act = lambda s: page.eval_on_selector(s, 'e => e.classList.contains("active")')
     tap = lambda k: page.click(f'#lockPad button[data-k="{k}"]')
     for k in '19845': tap(k)
@@ -91,7 +92,7 @@ with sync_playwright() as p:
     except Exception: pass
     check(ok, 'real kid site (Nat Geo Kids) loads in the Shell frame')
     caches = page.evaluate('caches.keys()')
-    check('lockshell-v1.5.0' in caches, 'SW cache lockshell-v1.5.0 (' + ','.join(caches) + ')')
+    check('lockshell-v1.5.1' in caches, 'SW cache lockshell-v1.5.1 (' + ','.join(caches) + ')')
     check(not errors, 'no ShellOS page/console errors ' + str(errors[:3]))
     b.close()
 print('RESULT:', 'ALL PASSED' if not fails else 'FAILED ' + str(fails))

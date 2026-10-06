@@ -110,13 +110,38 @@
       st.tx = p.x; st.ty = p.y - 26 - rh();
     }
     function setThrust(on) {
-      if (st.level !== 2 || (st.state !== 'land_play' && st.state !== 'land_ready')) return;
-      st.thrust = !!on && st.fuel > 0;
-      thrustBtn.classList.toggle('on', st.thrust);
-      if (st.thrust && st.state === 'land_ready') { st.state = 'land_play'; msg.textContent = ''; }
+      if (!st || st.level !== 2) { if (st) { st.thrust = false; thrustBtn.classList.remove('on'); } return; }
+      if (!on) { st.thrust = false; thrustBtn.classList.remove('on'); return; }
+      if (st.state === 'land_crash' || st.state === 'land_win') return;
+      if (st.fuel <= 0) { st.thrust = false; thrustBtn.classList.remove('on'); return; }
+      st.thrust = true; thrustBtn.classList.add('on');
+      if (st.state === 'land_ready') { st.state = 'land_play'; msg.textContent = ''; }
+      if (st.paused) { st.paused = false; }
     }
-    thrustBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); LS.audioCtx && LS.audioCtx(); try { thrustBtn.setPointerCapture(e.pointerId); } catch (x) {} setThrust(true); });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => thrustBtn.addEventListener(ev, () => setThrust(false)));
+    // iOS: pointerleave fires when the finger slides a few pixels, and setPointerCapture is flaky on <button>.
+    // Bind both pointer and touch (non-passive) so holding Thrust keeps burning; ignore pointerleave.
+    function thrustDown(e) {
+      e.preventDefault(); e.stopPropagation();
+      LS.audioCtx && LS.audioCtx();
+      if (e.pointerId != null) { try { thrustBtn.setPointerCapture(e.pointerId); } catch (x) {} }
+      setThrust(true);
+    }
+    function thrustUp(e) {
+      if (e && e.target === thrustBtn) { e.preventDefault(); e.stopPropagation(); }
+      setThrust(false);
+    }
+    thrustBtn.addEventListener('pointerdown', thrustDown);
+    thrustBtn.addEventListener('pointerup', thrustUp);
+    thrustBtn.addEventListener('pointercancel', thrustUp);
+    thrustBtn.addEventListener('lostpointercapture', () => setThrust(false));
+    thrustBtn.addEventListener('touchstart', thrustDown, { passive: false });
+    thrustBtn.addEventListener('touchend', thrustUp, { passive: false });
+    thrustBtn.addEventListener('touchcancel', thrustUp, { passive: false });
+    // iOS sometimes never delivers touchend to the button if the finger slides off; a document-level
+    // listener (no preventDefault) turns thrust off when any finger lifts while we're burning.
+    const docUp = () => { if (st && st.thrust) setThrust(false); };
+    document.addEventListener('touchend', docUp, { passive: true, capture: true });
+    document.addEventListener('pointerup', docUp, { capture: true });
 
     cv.addEventListener('pointerdown', (e) => {
       e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (x) {}
@@ -465,7 +490,7 @@
     cv._game = {
       get state() { return st.state; }, get level() { return st.level; }, get dist() { return st.dist; }, get paused() { return st.paused; },
       get banner() { return st.banner ? st.banner.text : null; }, get fuel() { return st.fuel; }, get alt() { return st.alt; }, get vy() { return st.vy; },
-      get softVy() { return st.softVy; }, TOTAL, MOON_KM, SAFE_VY, MAX_FUEL,
+      get softVy() { return st.softVy; }, get thrusting() { return !!st.thrust; }, TOTAL, MOON_KM, SAFE_VY, MAX_FUEL,
       rocket: () => ({ x: st.x, y: st.y, h: rh(), w: RW, keep: st.level === 2 ? LAND_KEEP : keep(prog()), vx: st.vx || 0, vy: st.vy || 0 }),
       pad: () => st.pad ? { x: st.pad.x, w: st.pad.w, y: st.pad.y } : null,
       obs: () => st.obs.map((o) => ({ type: o.type, x: o.x, y: o.y })),
@@ -476,7 +501,13 @@
       setLand: (opts) => { if (st.level !== 2) startLanding(); Object.assign(st, { thrust: false, drag: false, tx: null }, opts || {}); thrustBtn.classList.toggle('on', !!st.thrust); updateLandMeters(); draw(); },
       step: (dt) => step(dt), draw, collides: () => st.obs.some(collides), moonBottom, noSpawn: () => { st.nextSpawn = Infinity; }
     };
-    LS.gameCleanup(() => { cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onVis); });
+    LS.gameCleanup(() => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('touchend', docUp, true);
+      document.removeEventListener('pointerup', docUp, true);
+      setThrust(false);
+    });
   }
 
   LS.addGame('moonrocket', { name: 'Moon Rocket', emoji: '🚀', desc: 'Fly, then land on the Moon', bg: 'linear-gradient(135deg,#0b1a4a,#3a5bd9 60%,#8fb8ff)', run: moonrocket, extra: true,

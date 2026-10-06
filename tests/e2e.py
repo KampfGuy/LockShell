@@ -89,6 +89,9 @@ with sync_playwright() as p:
     visible = lambda sel: page.eval_on_selector(sel, 'e => e.classList.contains("active")')
 
     check(visible('#lock'), 'lock screen shows first')
+    check(page.locator('#lockLogo').count() == 1 and page.get_attribute('#lockLogo', 'src') == 'icons/icon-192.png', 'lock screen shows ShellOS logo image')
+    logo_ok = page.evaluate('fetch("icons/icon-192.png").then(r => r.ok && (r.headers.get("content-type")||"").includes("image"))')
+    check(logo_ok, 'lock logo PNG is reachable')
     check(page.title() == 'ShellOS', 'page title is ShellOS')
     check(page.evaluate('document.querySelector(\'meta[name="apple-mobile-web-app-title"]\').content') == 'ShellOS', 'apple-mobile-web-app-title is ShellOS')
     man = page.evaluate('fetch("manifest.json").then(r => r.json())')
@@ -228,7 +231,7 @@ with sync_playwright() as p:
     # ================= About =================
     open_app('settings'); page.click('.set-row:has-text("About")'); page.wait_for_timeout(300)
     about = page.inner_text('#appBody')
-    check(all(k in about for k in ['ShellOS', 'Version 1.5.0', 'Apps (19)', 'Games (12)', 'YouTube safety', 'youtube-nocookie.com', 'Screen Time in ShellOS', 'Buddy', 'Safety', 'Shell filter', 'Privacy', 'Open-Meteo', 'Wikipedia', 'iPhone limits', 'volume buttons', 'Guided Access', 'Limit Adult Websites', 'Kampf Kaiser']), 'About has version, apps, games, Buddy, safety, privacy, limits, Screen Time, credits')
+    check(all(k in about for k in ['ShellOS', 'Version 1.5.1', 'Apps (19)', 'Games (12)', 'YouTube safety', 'youtube-nocookie.com', 'Screen Time in ShellOS', 'Buddy', 'Safety', 'Shell filter', 'Privacy', 'Open-Meteo', 'Wikipedia', 'iPhone limits', 'volume buttons', 'Guided Access', 'Limit Adult Websites', 'Kampf Kaiser']), 'About has version, apps, games, Buddy, safety, privacy, limits, Screen Time, credits')
     check('19845' not in about and '19845' not in page.content(), 'About never shows the developer code')
     shot('about.png'); back()
     page.click('.set-row:has-text("Shake for Buddy")'); page.wait_for_timeout(300); shot('extra/settings-shake.png'); back(); back()
@@ -729,12 +732,27 @@ with sync_playwright() as p:
     # thrust button works
     page.click('canvas.mr-canvas'); page.wait_for_timeout(200)
     page.evaluate('(() => { const g = ' + G + '; g.setLand({ state: "land_play", alt: 500, vy: 8, fuel: 90 }); })()')
+    # pointer hold
     page.dispatch_event('.mr-thrust', 'pointerdown'); page.wait_for_timeout(100)
     check(page.eval_on_selector('.mr-thrust', 'e => e.classList.contains("on")'), 'holding Thrust lights the button')
     v0 = page.evaluate(G + '.vy')
     page.evaluate('(() => { const g = ' + G + '; g.setThrust(true); for (let i = 0; i < 20; i++) g.step(0.05); })()')
     v1 = page.evaluate(G + '.vy'); page.dispatch_event('.mr-thrust', 'pointerup')
     check(v1 < v0 - 1 and page.evaluate(G + '.fuel') < 90, 'Thrust slows the fall and burns fuel (vy %.1f -> %.1f, fuel %s)' % (v0, v1, page.evaluate(G + '.fuel')))
+    # iOS-style touch hold (touchstart/touchend) — the bug the iPhone hit
+    page.evaluate('(() => { const g = ' + G + '; g.setLand({ state: "land_play", alt: 500, vy: 10, fuel: 90 }); })()')
+    box = page.locator('.mr-thrust').bounding_box()
+    cdp = page.context.new_cdp_session(page)
+    cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': box['x'] + box['width']/2, 'y': box['y'] + box['height']/2, 'id': 1}]})
+    page.wait_for_timeout(80)
+    check(page.eval_on_selector('.mr-thrust', 'e => e.classList.contains("on")') and page.evaluate(G + '.thrusting'), 'touchstart on Thrust engages thrust (iOS path)')
+    page.evaluate('(() => { const g = ' + G + '; for (let i = 0; i < 15; i++) g.step(0.05); })()')
+    fuel_mid = page.evaluate(G + '.fuel'); vy_mid = page.evaluate(G + '.vy')
+    check(fuel_mid < 90 and vy_mid < 10, 'while touch-held, fuel burns and speed drops (fuel %.0f, vy %.1f)' % (fuel_mid, vy_mid))
+    cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+    page.wait_for_timeout(80)
+    check(not page.eval_on_selector('.mr-thrust', 'e => e.classList.contains("on")'), 'touchend on Thrust releases thrust')
+    # lock screen shows the ShellOS logo image
     # best landing resets with unlock
     page.evaluate('localStorage.setItem("lockshell.best.moonland", "350")')
     back(); back(); page.wait_for_timeout(300)

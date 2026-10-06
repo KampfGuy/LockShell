@@ -52,7 +52,9 @@ img,video,canvas{display:block;max-width:100%}
   radial-gradient(90% 60% at 0% 0%,rgba(0,122,255,.12),transparent 60%),
   radial-gradient(80% 60% at 100% 100%,rgba(88,86,214,.12),transparent 60%),var(--bg)}
 .lock-clock{text-align:center;padding:6px 0 0}
+.lock-logo{display:block;width:72px;height:72px;margin:4px auto 10px;border-radius:18px;box-shadow:var(--shadow);background:var(--card);object-fit:cover;-webkit-user-drag:none;user-select:none}
 .lock-glyph{width:22px;height:22px;margin:0 auto 6px;color:var(--muted)}
+.lock-glyph[hidden]{display:none!important}
 .lock-glyph svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .clock-date{font-size:19px;font-weight:600;color:var(--text);opacity:.85}
 .clock-time{font-size:92px;font-weight:700;letter-spacing:-3px;line-height:1.02;font-variant-numeric:tabular-nums;color:var(--text)}
@@ -845,8 +847,10 @@ canvas.mr-canvas{background:#4aa8ff}
 
 /* ---------- Moon Rocket Level 2 ---------- */
 .mr-area .score-row{flex-wrap:wrap}
-.mr-thrust{display:block;width:min(100%,320px);margin:10px auto 0;height:56px;border:0;border-radius:16px;background:linear-gradient(180deg,#ff9f0a,#ff6b00);color:#fff;font-size:20px;font-weight:800;box-shadow:0 4px 0 #c45a00;touch-action:none;-webkit-user-select:none;user-select:none}
+.mr-area{touch-action:none}
+.mr-thrust{display:block;width:min(100%,320px);margin:10px auto 0;height:56px;border:0;border-radius:16px;background:linear-gradient(180deg,#ff9f0a,#ff6b00);color:#fff;font-size:20px;font-weight:800;box-shadow:0 4px 0 #c45a00;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mr-thrust.on{background:linear-gradient(180deg,#ffcc00,#ff9500);transform:translateY(2px);box-shadow:0 2px 0 #c45a00}
 .mr-thrust[hidden]{display:none !important}
+.mr-thrust:active,.mr-thrust.on{filter:brightness(1.05)}
 .mr-land-btn{display:block;width:min(100%,320px);margin:10px auto 0}
 .mr-land-btn[hidden]{display:none !important}
